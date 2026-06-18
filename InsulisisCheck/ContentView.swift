@@ -286,8 +286,25 @@ private struct CloudSharingView: View {
             }
             shareURL = url
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = CloudSharingErrorMessage.make(from: error)
         }
+    }
+}
+
+private enum CloudSharingErrorMessage {
+    static func make(from error: Error) -> String {
+        let description = error.localizedDescription
+
+        if description.localizedCaseInsensitiveContains("Cannot create new type") ||
+            description.localizedCaseInsensitiveContains("production schema") {
+            return """
+            O schema de produção do CloudKit ainda não foi publicado para este app.
+
+            Abra o CloudKit Dashboard, entre no container iCloud.com.raven.InsulisisCheck e faça o deploy do schema de Development para Production. Depois disso, tente compartilhar novamente.
+            """
+        }
+
+        return description
     }
 }
 

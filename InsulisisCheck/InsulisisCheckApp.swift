@@ -8,6 +8,7 @@
 import SwiftUI
 import CloudKit
 import UIKit
+import WidgetKit
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
@@ -32,6 +33,7 @@ struct InsulisisCheckApp: App {
         }
         .onChange(of: scenePhase) {
             guard scenePhase == .active else { return }
+            WidgetCenter.shared.reloadAllTimelines()
             Task {
                 await store.syncFromCloud()
                 await InsulinActivityManager.shared.refresh(store: store)

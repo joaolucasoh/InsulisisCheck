@@ -9,6 +9,7 @@ struct InsulisisStatusWidget: Widget {
         .configurationDisplayName("Insulísis Check")
         .description("Mostra se a dose da Isis está atrasada ou aguardando o próximo horário.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryInline, .accessoryCircular, .accessoryRectangular])
+        .contentMarginsDisabled()
     }
 }
 
@@ -196,25 +197,29 @@ private struct InsulisisStatusWidgetView: View {
     }
 
     private func fullBleedWidget(textScale: WidgetTextScale) -> some View {
-        ZStack(alignment: .bottomLeading) {
-            Image(entry.status.imageName)
-                .resizable()
-                .scaledToFill()
-                .containerRelativeFrame([.horizontal, .vertical])
-                .clipped()
+        GeometryReader { proxy in
+            ZStack(alignment: .bottomLeading) {
+                entry.status.tint.opacity(0.28)
 
-            LinearGradient(
-                colors: [
-                    .black.opacity(0),
-                    .black.opacity(0.16),
-                    .black.opacity(0.66)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+                Image(entry.status.imageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .clipped()
 
-            statusText(textScale: textScale)
-                .padding(textScale.padding)
+                LinearGradient(
+                    colors: [
+                        .black.opacity(0),
+                        .black.opacity(0.16),
+                        .black.opacity(0.66)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+
+                statusText(textScale: textScale)
+                    .padding(textScale.padding)
+            }
         }
     }
 
