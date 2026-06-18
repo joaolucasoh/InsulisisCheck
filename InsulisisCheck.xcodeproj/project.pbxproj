@@ -6,9 +6,48 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C5B3D3BB2FE4700000AF01CF /* InsulisisCheckLiveActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C5B3D3B12FE4700000AF01CF /* InsulisisCheckLiveActivity.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C5B3D3BC2FE4700000AF01CF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C5B3D39B2FE4603A00AF01CF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C5B3D3B32FE4700000AF01CF;
+			remoteInfo = InsulisisCheckLiveActivity;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C5B3D3BA2FE4700000AF01CF /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				C5B3D3BB2FE4700000AF01CF /* InsulisisCheckLiveActivity.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		C5B3D3A32FE4603A00AF01CF /* InsulisisCheck.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = InsulisisCheck.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C5B3D3B12FE4700000AF01CF /* InsulisisCheckLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = InsulisisCheckLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C5B3D3BE2FE4700000AF01CF /* Exceptions for "InsulisisCheckLiveActivity" folder in "InsulisisCheckLiveActivity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C5B3D3B32FE4700000AF01CF /* InsulisisCheckLiveActivity */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C5B3D3A52FE4603A00AF01CF /* InsulisisCheck */ = {
@@ -16,10 +55,25 @@
 			path = InsulisisCheck;
 			sourceTree = "<group>";
 		};
+		C5B3D3B22FE4700000AF01CF /* InsulisisCheckLiveActivity */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C5B3D3BE2FE4700000AF01CF /* Exceptions for "InsulisisCheckLiveActivity" folder in "InsulisisCheckLiveActivity" target */,
+			);
+			path = InsulisisCheckLiveActivity;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C5B3D3A02FE4603A00AF01CF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C5B3D3B52FE4700000AF01CF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +87,7 @@
 			isa = PBXGroup;
 			children = (
 				C5B3D3A52FE4603A00AF01CF /* InsulisisCheck */,
+				C5B3D3B22FE4700000AF01CF /* InsulisisCheckLiveActivity */,
 				C5B3D3A42FE4603A00AF01CF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +96,7 @@
 			isa = PBXGroup;
 			children = (
 				C5B3D3A32FE4603A00AF01CF /* InsulisisCheck.app */,
+				C5B3D3B12FE4700000AF01CF /* InsulisisCheckLiveActivity.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,10 +111,12 @@
 				C5B3D39F2FE4603A00AF01CF /* Sources */,
 				C5B3D3A02FE4603A00AF01CF /* Frameworks */,
 				C5B3D3A12FE4603A00AF01CF /* Resources */,
+				C5B3D3BA2FE4700000AF01CF /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				C5B3D3BD2FE4700000AF01CF /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				C5B3D3A52FE4603A00AF01CF /* InsulisisCheck */,
@@ -69,6 +127,28 @@
 			productName = InsulisisCheck;
 			productReference = C5B3D3A32FE4603A00AF01CF /* InsulisisCheck.app */;
 			productType = "com.apple.product-type.application";
+		};
+		C5B3D3B32FE4700000AF01CF /* InsulisisCheckLiveActivity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C5B3D3B72FE4700000AF01CF /* Build configuration list for PBXNativeTarget "InsulisisCheckLiveActivity" */;
+			buildPhases = (
+				C5B3D3B42FE4700000AF01CF /* Sources */,
+				C5B3D3B52FE4700000AF01CF /* Frameworks */,
+				C5B3D3B62FE4700000AF01CF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C5B3D3B22FE4700000AF01CF /* InsulisisCheckLiveActivity */,
+			);
+			name = InsulisisCheckLiveActivity;
+			packageProductDependencies = (
+			);
+			productName = InsulisisCheckLiveActivity;
+			productReference = C5B3D3B12FE4700000AF01CF /* InsulisisCheckLiveActivity.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -81,6 +161,9 @@
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					C5B3D3A22FE4603A00AF01CF = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					C5B3D3B32FE4700000AF01CF = {
 						CreatedOnToolsVersion = 26.5;
 					};
 				};
@@ -100,12 +183,20 @@
 			projectRoot = "";
 			targets = (
 				C5B3D3A22FE4603A00AF01CF /* InsulisisCheck */,
+				C5B3D3B32FE4700000AF01CF /* InsulisisCheckLiveActivity */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		C5B3D3A12FE4603A00AF01CF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C5B3D3B62FE4700000AF01CF /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +213,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C5B3D3B42FE4700000AF01CF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C5B3D3BD2FE4700000AF01CF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C5B3D3B32FE4700000AF01CF /* InsulisisCheckLiveActivity */;
+			targetProxy = C5B3D3BC2FE4700000AF01CF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		C5B3D3AC2FE4603B00AF01CF /* Debug */ = {
@@ -250,12 +356,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = InsulisisCheck/InsulisisCheck.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9AL49429D7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Insulisis;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -282,12 +390,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = InsulisisCheck/InsulisisCheck.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9AL49429D7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Insulisis;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -300,6 +410,64 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.raven.InsulisisCheck;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		C5B3D3B82FE4700000AF01CF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = InsulisisCheckLiveActivity/InsulisisCheckLiveActivity.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9AL49429D7;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = InsulisisCheckLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.raven.InsulisisCheck.InsulisisCheckLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C5B3D3B92FE4700000AF01CF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = InsulisisCheckLiveActivity/InsulisisCheckLiveActivity.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9AL49429D7;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = InsulisisCheckLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.raven.InsulisisCheck.InsulisisCheckLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -327,6 +495,15 @@
 			buildConfigurations = (
 				C5B3D3AF2FE4603B00AF01CF /* Debug */,
 				C5B3D3B02FE4603B00AF01CF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C5B3D3B72FE4700000AF01CF /* Build configuration list for PBXNativeTarget "InsulisisCheckLiveActivity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C5B3D3B82FE4700000AF01CF /* Debug */,
+				C5B3D3B92FE4700000AF01CF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
