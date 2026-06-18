@@ -24,6 +24,7 @@ struct ContentView: View {
                             PeriodStatusCard(
                                 period: period,
                                 entry: store.entry(for: period),
+                                isDue: isDue(period),
                                 isOverdue: isOverdue(period),
                                 nextDoseDate: currentSchedule.nextPeriod == period ? currentSchedule.nextDoseDate : nil
                             ) {
@@ -161,12 +162,17 @@ struct ContentView: View {
         currentSchedule.isOverdue
     }
 
+    private var hasDueDose: Bool {
+        currentSchedule.isDue
+    }
+
     private var currentSchedule: DoseSchedule {
         DoseSchedule.make(entries: store.entries)
     }
 
     private var overallStatusTitle: String {
         if hasOverdue { return "Dose da \(currentSchedule.nextPeriod.title) atrasada" }
+        if hasDueDose { return "Hora da dose da \(currentSchedule.nextPeriod.title.lowercased()) 💉" }
         return "Zizi tá de boa, só esperando a próxima 💉"
     }
 
@@ -176,15 +182,24 @@ struct ContentView: View {
 
     private var headerImageName: String {
         if hasOverdue { return "IsisWaiting" }
+        if hasDueDose { return "IsisDue" }
         return "IsisNeutral"
     }
 
     private var statusIconName: String {
-        hasOverdue ? "clock.badge.exclamationmark" : "clock"
+        if hasOverdue { return "clock.badge.exclamationmark" }
+        if hasDueDose { return "syringe" }
+        return "clock"
     }
 
     private var statusColor: Color {
-        hasOverdue ? .red : .green
+        if hasOverdue { return .red }
+        if hasDueDose { return .orange }
+        return .green
+    }
+
+    private func isDue(_ period: InsulinPeriod) -> Bool {
+        currentSchedule.isDue && currentSchedule.nextPeriod == period
     }
 
     private func isOverdue(_ period: InsulinPeriod) -> Bool {
@@ -323,6 +338,7 @@ private struct ShareSheet: UIViewControllerRepresentable {
 private struct PeriodStatusCard: View {
     let period: InsulinPeriod
     let entry: DoseEntry?
+    let isDue: Bool
     let isOverdue: Bool
     let nextDoseDate: Date?
     let action: () -> Void
@@ -378,6 +394,7 @@ private struct PeriodStatusCard: View {
 
     private var statusColor: Color {
         if entry != nil { return .green }
+        if isDue { return .orange }
         return isOverdue ? .red : .orange
     }
 
@@ -387,6 +404,8 @@ private struct PeriodStatusCard: View {
             return "OK às \(entry.date.insulisisTimeText), próxima às \(nextDose.insulisisTimeText)"
         }
         if let nextDoseDate {
+            if isOverdue { return "Dose atrasada desde \(nextDoseDate.insulisisTimeText)" }
+            if isDue { return "Hora de aplicar a dose da \(period.title.lowercased())" }
             return "Próxima dose às \(nextDoseDate.insulisisTimeText)"
         }
         return isOverdue ? "Ainda não registrada" : "Pendente"

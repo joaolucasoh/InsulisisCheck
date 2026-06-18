@@ -1,11 +1,25 @@
 import Foundation
 
 struct DoseSchedule: Equatable {
+    static let overdueGracePeriod: TimeInterval = 15 * 60
+
     let nextPeriod: InsulinPeriod
     let nextDoseDate: Date
 
     var isOverdue: Bool {
-        Date.now >= nextDoseDate
+        isOverdue(at: Date.now)
+    }
+
+    var isDue: Bool {
+        isDue(at: Date.now)
+    }
+
+    func isDue(at date: Date) -> Bool {
+        date >= nextDoseDate && !isOverdue(at: date)
+    }
+
+    func isOverdue(at date: Date) -> Bool {
+        date >= nextDoseDate.addingTimeInterval(Self.overdueGracePeriod)
     }
 
     var nextDoseText: String {

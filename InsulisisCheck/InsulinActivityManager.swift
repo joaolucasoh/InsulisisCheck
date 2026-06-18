@@ -11,7 +11,7 @@ final class InsulinActivityManager {
         let schedule = DoseSchedule.make(entries: store.entries, now: now)
 
         for period in InsulinPeriod.allCases {
-            let isLate = schedule.isOverdue && schedule.nextPeriod == period
+            let isLate = schedule.isOverdue(at: now) && schedule.nextPeriod == period
 
             if isLate {
                 await startOverdueActivity(for: period, now: now)

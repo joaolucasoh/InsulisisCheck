@@ -40,12 +40,15 @@ private struct InsulisisStatusEntry: TimelineEntry {
 
 private enum InsulisisWidgetStatus {
     case overdue(periodTitle: String, nextDoseDate: Date)
+    case due(periodTitle: String, nextDoseDate: Date)
     case waiting(periodTitle: String, nextDoseDate: Date)
 
     var title: String {
         switch self {
         case .overdue(let periodTitle, _):
             "Dose da \(periodTitle) atrasada"
+        case .due(let periodTitle, _):
+            "Hora da dose da \(periodTitle)"
         case .waiting:
             "Zizi tá de boa"
         }
@@ -55,6 +58,8 @@ private enum InsulisisWidgetStatus {
         switch self {
         case .overdue(_, let nextDoseDate):
             "Era para \(nextDoseDate.insulisisTimeText)"
+        case .due(_, let nextDoseDate):
+            "Aplicar às \(nextDoseDate.insulisisTimeText)"
         case .waiting(_, let nextDoseDate):
             "Próxima dose às \(nextDoseDate.insulisisTimeText)"
         }
@@ -63,6 +68,7 @@ private enum InsulisisWidgetStatus {
     var imageName: String {
         switch self {
         case .overdue: "IsisWaiting"
+        case .due: "IsisDue"
         case .waiting: "IsisNeutral"
         }
     }
@@ -70,6 +76,7 @@ private enum InsulisisWidgetStatus {
     var tint: Color {
         switch self {
         case .overdue: .red
+        case .due: .orange
         case .waiting: .green
         }
     }
@@ -77,6 +84,7 @@ private enum InsulisisWidgetStatus {
     var symbolName: String {
         switch self {
         case .overdue: "clock.badge.exclamationmark"
+        case .due: "syringe"
         case .waiting: "checkmark.seal.fill"
         }
     }
@@ -85,8 +93,12 @@ private enum InsulisisWidgetStatus {
         let entries = DoseEntrySnapshot.allEntries()
         let schedule = DoseScheduleSnapshot.make(entries: entries, now: now)
 
-        if now >= schedule.nextDoseDate {
+        if schedule.isOverdue(at: now) {
             return .overdue(periodTitle: schedule.nextPeriod.title, nextDoseDate: schedule.nextDoseDate)
+        }
+
+        if schedule.isDue(at: now) {
+            return .due(periodTitle: schedule.nextPeriod.title, nextDoseDate: schedule.nextDoseDate)
         }
 
         return .waiting(periodTitle: schedule.nextPeriod.title, nextDoseDate: schedule.nextDoseDate)
@@ -322,8 +334,18 @@ private struct DoseEntrySnapshot: Codable {
 }
 
 private struct DoseScheduleSnapshot {
+    static let overdueGracePeriod: TimeInterval = 15 * 60
+
     let nextPeriod: InsulinPeriodSnapshot
     let nextDoseDate: Date
+
+    func isDue(at date: Date) -> Bool {
+        date >= nextDoseDate && !isOverdue(at: date)
+    }
+
+    func isOverdue(at date: Date) -> Bool {
+        date >= nextDoseDate.addingTimeInterval(Self.overdueGracePeriod)
+    }
 
     static func make(entries: [DoseEntrySnapshot], now: Date, calendar: Calendar = .current) -> DoseScheduleSnapshot {
         if let latestEntry = entries.max(by: { $0.date < $1.date }) {
