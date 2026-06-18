@@ -43,6 +43,20 @@ final class DoseStore: ObservableObject {
         }
     }
 
+    func markPending(period: InsulinPeriod, on date: Date = Date()) {
+        guard let entry = entry(for: period, on: date) else { return }
+
+        entries.removeAll { $0.cloudRecordName == entry.cloudRecordName }
+        entries.sort { $0.date > $1.date }
+        save()
+
+        Task {
+            await deleteEntry(entry)
+            await InsulinActivityManager.shared.refresh(store: self)
+            await InsulinNotificationManager.shared.refresh(entries: entries)
+        }
+    }
+
     func syncFromCloud() async {
         syncStatus = .syncing
 
@@ -103,6 +117,18 @@ final class DoseStore: ObservableObject {
 
         do {
             try await CloudDoseSync.shared.save(entry)
+            syncStatus = .ready
+            await InsulinNotificationManager.shared.refresh(entries: entries)
+        } catch {
+            syncStatus = .unavailable(error.localizedDescription)
+        }
+    }
+
+    private func deleteEntry(_ entry: DoseEntry) async {
+        syncStatus = .syncing
+
+        do {
+            try await CloudDoseSync.shared.delete(entry)
             syncStatus = .ready
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {

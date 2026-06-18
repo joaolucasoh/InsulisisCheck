@@ -1,6 +1,8 @@
 import Foundation
 
 struct DoseEntry: Codable, Identifiable, Hashable {
+    static let defaultUnits = 8.0
+
     let id: UUID
     let date: Date
     let period: InsulinPeriod

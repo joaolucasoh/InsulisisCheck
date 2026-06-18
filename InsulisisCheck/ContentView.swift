@@ -134,7 +134,7 @@ struct ContentView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(entry.period.title)
                                 .font(.headline)
-                            Text("Dada por \(entry.caregiver)")
+                            Text("Aplicada por \(entry.caregiver)")
                                 .foregroundStyle(.secondary)
                         }
 
@@ -404,7 +404,7 @@ private struct PeriodStatusCard: View {
             return "OK às \(entry.date.insulisisTimeText), próxima às \(nextDose.insulisisTimeText)"
         }
         if let nextDoseDate {
-            if isOverdue { return "Dose atrasada desde \(nextDoseDate.insulisisTimeText)" }
+            if isOverdue { return "Dose atrasada \(nextDoseDate.insulisisDelayText)" }
             if isDue { return "Hora de aplicar a dose da \(period.title.lowercased())" }
             return "Próxima dose às \(nextDoseDate.insulisisTimeText)"
         }
@@ -416,7 +416,7 @@ private struct PeriodStatusCard: View {
             let prefix = isOverdue ? "Desde" : "Às"
             return "\(prefix) \(nextDoseDate.insulisisTimeText)"
         }
-        return "Até \(period.deadline(on: Date.now).insulisisTimeText)"
+        return entry == nil ? "Aguardando" : "OK"
     }
 }
 
@@ -427,7 +427,7 @@ private struct ManualEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedPeriod: InsulinPeriod
     @State private var caregiver = "João Lucas"
-    @State private var units = 0.0
+    @State private var units = DoseEntry.defaultUnits
     @State private var doseDate = Date()
 
     init(period: InsulinPeriod, store: DoseStore) {
@@ -437,7 +437,7 @@ private struct ManualEntryView: View {
         let existingEntry = store.entry(for: period)
         _selectedPeriod = State(initialValue: existingEntry?.period ?? period)
         _caregiver = State(initialValue: existingEntry?.caregiver ?? "João Lucas")
-        _units = State(initialValue: existingEntry?.units ?? 0)
+        _units = State(initialValue: existingEntry?.units ?? DoseEntry.defaultUnits)
         _doseDate = State(initialValue: existingEntry?.date ?? Date())
     }
 
@@ -468,6 +468,17 @@ private struct ManualEntryView: View {
                         selection: $doseDate,
                         displayedComponents: [.date, .hourAndMinute]
                     )
+                }
+
+                if store.entry(for: period) != nil {
+                    Section {
+                        Button(role: .destructive) {
+                            store.markPending(period: period)
+                            dismiss()
+                        } label: {
+                            Label("Voltar para pendente", systemImage: "arrow.uturn.backward")
+                        }
+                    }
                 }
             }
             .navigationTitle("Registrar dose")

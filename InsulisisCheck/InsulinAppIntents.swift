@@ -37,10 +37,10 @@ struct MarkInsulinIntent: AppIntent {
     init() {
         period = .morning
         caregiver = .joaoLucas
-        units = 0
+        units = DoseEntry.defaultUnits
     }
 
-    init(period: InsulinPeriod, caregiver: Caregiver, units: Double = 0) {
+    init(period: InsulinPeriod, caregiver: Caregiver, units: Double = DoseEntry.defaultUnits) {
         self.period = period
         self.caregiver = caregiver
         self.units = units
@@ -55,7 +55,7 @@ struct MarkInsulinIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
         DoseStore.shared.record(period: period, caregiver: caregiver.displayName, units: units)
-        return .result(dialog: "Insulisis da \(period.spokenTitle) ok, dada por \(caregiver.displayName).")
+        return .result(dialog: "Insulisis da \(period.spokenTitle) ok, aplicada por \(caregiver.displayName).")
     }
 }
 

@@ -53,6 +53,14 @@ final class CloudDoseSync {
         _ = try await save(record, in: target.database)
     }
 
+    func delete(_ entry: DoseEntry) async throws {
+        try await ensurePrivateZone()
+
+        let target = try await writableTarget()
+        let recordID = CKRecord.ID(recordName: entry.cloudRecordName, zoneID: target.zoneID)
+        try await delete(recordID, in: target.database)
+    }
+
     func prepareShare(completion: @escaping (CKShare?, CKContainer?, Error?) -> Void) {
         Task {
             do {
@@ -223,6 +231,24 @@ final class CloudDoseSync {
                 }
             }
             database.add(operation)
+        }
+    }
+
+    private func delete(_ recordID: CKRecord.ID, in database: CKDatabase) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            database.delete(withRecordID: recordID) { _, error in
+                if let ckError = error as? CKError, ckError.code == .unknownItem {
+                    continuation.resume()
+                    return
+                }
+
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                continuation.resume()
+            }
         }
     }
 
