@@ -155,13 +155,6 @@ private struct InsulisisStatusWidgetView: View {
                 .frame(width: 38, height: 38)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .widgetAccentable(false)
-                .overlay(alignment: .bottomTrailing) {
-                    Image(systemName: entry.status.symbolName)
-                        .font(.caption2.bold())
-                        .foregroundStyle(.white)
-                        .padding(3)
-                        .background(entry.status.tint, in: Circle())
-                }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.status.title)
@@ -186,12 +179,6 @@ private struct InsulisisStatusWidgetView: View {
                 .frame(width: 54, height: 54)
                 .clipShape(Circle())
                 .widgetAccentable(false)
-
-            Image(systemName: entry.status.symbolName)
-                .font(.caption2.bold())
-                .foregroundStyle(.white)
-                .padding(4)
-                .background(entry.status.tint, in: Circle())
         }
         .frame(width: 58, height: 58)
     }
