@@ -64,10 +64,12 @@ struct ContentView: View {
             .task {
                 await store.syncFromCloud()
                 await InsulinActivityManager.shared.refresh(store: store)
+                await InsulinNotificationManager.shared.refresh(entries: store.entries)
             }
             .onChange(of: store.entries) {
                 Task {
                     await InsulinActivityManager.shared.refresh(store: store)
+                    await InsulinNotificationManager.shared.refresh(entries: store.entries)
                 }
             }
             .onReceive(refreshTimer) { _ in

@@ -39,6 +39,7 @@ final class DoseStore: ObservableObject {
         Task {
             await syncEntry(entry)
             await InsulinActivityManager.shared.dismissActivity(for: period)
+            await InsulinNotificationManager.shared.refresh(entries: entries)
         }
     }
 
@@ -49,6 +50,7 @@ final class DoseStore: ObservableObject {
             let cloudEntries = try await CloudDoseSync.shared.fetchEntries()
             merge(cloudEntries)
             syncStatus = .ready
+            await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
             syncStatus = .unavailable(error.localizedDescription)
         }
@@ -102,6 +104,7 @@ final class DoseStore: ObservableObject {
         do {
             try await CloudDoseSync.shared.save(entry)
             syncStatus = .ready
+            await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
             syncStatus = .unavailable(error.localizedDescription)
         }

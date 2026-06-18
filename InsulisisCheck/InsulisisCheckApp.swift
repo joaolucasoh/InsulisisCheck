@@ -30,6 +30,9 @@ struct InsulisisCheckApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    InsulinNotificationManager.shared.configure()
+                }
         }
         .onChange(of: scenePhase) {
             guard scenePhase == .active else { return }
@@ -37,6 +40,7 @@ struct InsulisisCheckApp: App {
             Task {
                 await store.syncFromCloud()
                 await InsulinActivityManager.shared.refresh(store: store)
+                await InsulinNotificationManager.shared.refresh(entries: store.entries)
             }
         }
     }
