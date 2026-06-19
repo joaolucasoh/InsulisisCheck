@@ -5,6 +5,7 @@ struct InsulisisStatusWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "InsulisisStatusWidget", provider: InsulisisStatusProvider()) { entry in
             InsulisisStatusWidgetView(entry: entry)
+                .accessibilityIdentifier("widget.status.root")
         }
         .configurationDisplayName("Insulísis Check")
         .description("Mostra se a dose da Isis está atrasada ou aguardando o próximo horário.")
@@ -125,6 +126,7 @@ private struct InsulisisStatusWidgetView: View {
             mediumWidget
         case .accessoryInline:
             Text("\(Image(systemName: entry.status.symbolName)) \(entry.status.title)")
+                .accessibilityIdentifier("widget.status.accessory-inline.label")
         case .accessoryCircular:
             circularAccessory
         case .accessoryRectangular:
@@ -141,8 +143,10 @@ private struct InsulisisStatusWidgetView: View {
             Image(entry.status.imageName)
                 .resizable()
                 .scaledToFill()
+                .accessibilityIdentifier("widget.status.background-image")
         default:
             Color.clear
+                .accessibilityIdentifier("widget.status.clear-background")
         }
     }
 
@@ -167,22 +171,28 @@ private struct InsulisisStatusWidgetView: View {
                 .frame(width: 38, height: 38)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .widgetAccentable(false)
+                .accessibilityIdentifier("widget.status.rectangular.image")
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.status.title)
                     .font(.headline)
                     .lineLimit(1)
+                    .accessibilityIdentifier("widget.status.rectangular.title")
                 Text(entry.status.subtitle)
                     .font(.caption)
                     .lineLimit(1)
+                    .accessibilityIdentifier("widget.status.rectangular.subtitle")
             }
+            .accessibilityIdentifier("widget.status.rectangular.text-stack")
         }
+        .accessibilityIdentifier("widget.status.rectangular.container")
     }
 
     private var circularAccessory: some View {
         ZStack(alignment: .bottomTrailing) {
             Circle()
                 .fill(entry.status.tint.opacity(0.22))
+                .accessibilityIdentifier("widget.status.circular.background")
 
             Image(entry.status.imageName)
                 .renderingMode(.original)
@@ -191,8 +201,10 @@ private struct InsulisisStatusWidgetView: View {
                 .frame(width: 54, height: 54)
                 .clipShape(Circle())
                 .widgetAccentable(false)
+                .accessibilityIdentifier("widget.status.circular.image")
         }
         .frame(width: 58, height: 58)
+        .accessibilityIdentifier("widget.status.circular.container")
     }
 
     private func fullBleedWidget(textScale: WidgetTextScale) -> some View {
@@ -205,6 +217,7 @@ private struct InsulisisStatusWidgetView: View {
                     .scaledToFill()
                     .frame(width: proxy.size.width, height: proxy.size.height)
                     .clipped()
+                    .accessibilityIdentifier("widget.status.full-bleed.image")
 
                 LinearGradient(
                     colors: [
@@ -218,7 +231,9 @@ private struct InsulisisStatusWidgetView: View {
 
                 statusText(textScale: textScale)
                     .padding(textScale.padding)
+                    .accessibilityIdentifier("widget.status.full-bleed.text-stack")
             }
+            .accessibilityIdentifier("widget.status.full-bleed.container")
         }
     }
 
@@ -229,13 +244,16 @@ private struct InsulisisStatusWidgetView: View {
                 .foregroundStyle(.white)
                 .lineLimit(2)
                 .shadow(radius: 4, y: 1)
+                .accessibilityIdentifier("widget.status.title-label")
 
             Text(entry.status.subtitle)
                 .font(textScale.subtitleFont)
                 .foregroundStyle(.white.opacity(0.9))
                 .lineLimit(2)
                 .shadow(radius: 3, y: 1)
+                .accessibilityIdentifier("widget.status.subtitle-label")
         }
+        .accessibilityIdentifier("widget.status.text-stack")
     }
 }
 
