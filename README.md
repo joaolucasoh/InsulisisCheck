@@ -18,7 +18,7 @@ O app usa ilustrações da Isis para deixar o status da rotina mais evidente:
 
 Quando uma dose passa do período de tolerância, o app exibe uma Live Activity na tela bloqueada com a contagem de quanto tempo a dose está atrasada.
 
-![Imagem de fundo da Live Activity com a Isis atrasada](InsulisisCheck/Assets.xcassets/live_activity_overdue_bg.imageset/live-activity-overdue-bg@3x.png)
+![Live Activity do Insulísis Check na tela bloqueada](docs/images/live-activity-permission.png)
 
 ## Por que este app existe
 
