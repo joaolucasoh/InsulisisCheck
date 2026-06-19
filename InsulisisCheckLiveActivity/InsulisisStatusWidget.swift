@@ -60,9 +60,9 @@ private enum InsulisisWidgetStatus {
         case .overdue(_, let nextDoseDate):
             "Atrasada \(nextDoseDate.insulisisDelayText)"
         case .due(_, let nextDoseDate):
-            "Aplicar às \(nextDoseDate.insulisisTimeText)"
+            "Aplicar \(nextDoseDate.insulisisShortDayTimeText)"
         case .waiting(_, let nextDoseDate):
-            "Próxima dose às \(nextDoseDate.insulisisTimeText)"
+            "Próxima dose \(nextDoseDate.insulisisShortDayTimeText)"
         }
     }
 
@@ -387,6 +387,27 @@ private struct DoseScheduleSnapshot {
 }
 
 private extension Date {
+    var insulisisShortDayTimeText: String {
+        let calendar = Calendar.current
+        let timeText = insulisisTimeText
+
+        if calendar.isDateInToday(self) {
+            return "hoje, às \(timeText)"
+        }
+
+        if calendar.isDateInTomorrow(self) {
+            return "amanhã, às \(timeText)"
+        }
+
+        return formatted(
+            .dateTime
+                .locale(Locale(identifier: "pt_BR"))
+                .weekday(.abbreviated)
+                .hour()
+                .minute()
+        )
+    }
+
     var insulisisTimeText: String {
         formatted(
             .dateTime

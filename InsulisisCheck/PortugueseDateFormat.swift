@@ -12,7 +12,18 @@ extension Date {
     }
 
     var insulisisShortDayTimeText: String {
-        formatted(
+        let calendar = Calendar.current
+        let timeText = insulisisTimeText
+
+        if calendar.isDateInToday(self) {
+            return "hoje, às \(timeText)"
+        }
+
+        if calendar.isDateInTomorrow(self) {
+            return "amanhã, às \(timeText)"
+        }
+
+        return formatted(
             .dateTime
                 .locale(Locale(identifier: "pt_BR"))
                 .weekday(.abbreviated)

@@ -448,7 +448,7 @@ private struct PeriodStatusCard: View {
     private var statusText: String {
         if let entry {
             let nextDose = Calendar.current.date(byAdding: .hour, value: 12, to: entry.date) ?? entry.date.addingTimeInterval(43_200)
-            return "OK às \(entry.date.insulisisTimeText), próxima às \(nextDose.insulisisTimeText)"
+            return "OK às \(entry.date.insulisisTimeText), próxima \(nextDose.insulisisShortDayTimeText)"
         }
         if let nextDoseDate {
             if isOverdue { return "Dose atrasada \(nextDoseDate.insulisisDelayText)" }
