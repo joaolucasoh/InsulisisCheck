@@ -14,4 +14,16 @@ enum Caregiver: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .naoInformado: "Não informado"
         }
     }
+
+    static var manualEntryOptions: [Caregiver] {
+        [.joaoLucas, .sheila]
+    }
+
+    static func fromDisplayName(_ name: String) -> Caregiver {
+        let normalizedName = name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+
+        return manualEntryOptions.first { caregiver in
+            caregiver.displayName.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current) == normalizedName
+        } ?? .joaoLucas
+    }
 }

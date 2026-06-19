@@ -4,7 +4,7 @@ import Foundation
 struct InsulinActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         var periodTitle: String
-        var countdownEndsAt: Date
+        var overdueStartedAt: Date
         var isOverdue: Bool
     }
 

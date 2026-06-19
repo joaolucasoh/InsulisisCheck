@@ -426,7 +426,7 @@ private struct ManualEntryView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedPeriod: InsulinPeriod
-    @State private var caregiver = "João Lucas"
+    @State private var caregiver: Caregiver
     @State private var units = DoseEntry.defaultUnits
     @State private var doseDate = Date()
 
@@ -436,7 +436,7 @@ private struct ManualEntryView: View {
 
         let existingEntry = store.entry(for: period)
         _selectedPeriod = State(initialValue: existingEntry?.period ?? period)
-        _caregiver = State(initialValue: existingEntry?.caregiver ?? "João Lucas")
+        _caregiver = State(initialValue: existingEntry.map { Caregiver.fromDisplayName($0.caregiver) } ?? .joaoLucas)
         _units = State(initialValue: existingEntry?.units ?? DoseEntry.defaultUnits)
         _doseDate = State(initialValue: existingEntry?.date ?? Date())
     }
@@ -451,8 +451,11 @@ private struct ManualEntryView: View {
                         }
                     }
 
-                    TextField("Quem", text: $caregiver)
-                        .textContentType(.name)
+                    Picker("Quem aplicou", selection: $caregiver) {
+                        ForEach(Caregiver.manualEntryOptions) { caregiver in
+                            Text(caregiver.displayName).tag(caregiver)
+                        }
+                    }
 
                     Stepper(value: $units, in: 0...100, step: 0.5) {
                         HStack {
@@ -492,7 +495,7 @@ private struct ManualEntryView: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Salvar") {
-                        store.record(period: selectedPeriod, caregiver: caregiver, units: units, date: doseDate)
+                        store.record(period: selectedPeriod, caregiver: caregiver.displayName, units: units, date: doseDate)
                         dismiss()
                     }
                     .fontWeight(.semibold)

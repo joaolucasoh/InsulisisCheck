@@ -14,22 +14,24 @@ final class InsulinActivityManager {
             let isLate = schedule.isOverdue(at: now) && schedule.nextPeriod == period
 
             if isLate {
-                await startOverdueActivity(for: period, now: now)
+                await startOverdueActivity(for: period, scheduledDoseDate: schedule.nextDoseDate, now: now)
             } else {
                 await dismissActivity(for: period)
             }
         }
     }
 
-    func startOverdueActivity(for period: InsulinPeriod, now: Date = Date()) async {
+    func startOverdueActivity(for period: InsulinPeriod, scheduledDoseDate: Date, now: Date = Date()) async {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         guard activities(for: period).isEmpty else { return }
+
+        LiveActivityImagePublisher.publishStaticImages()
 
         let end = Calendar.current.date(byAdding: .hour, value: 4, to: now) ?? now.addingTimeInterval(14_400)
         let attributes = InsulinActivityAttributes(periodID: period.rawValue, dogName: "Isis")
         let state = InsulinActivityAttributes.ContentState(
             periodTitle: period.title,
-            countdownEndsAt: end,
+            overdueStartedAt: scheduledDoseDate,
             isOverdue: true
         )
         let content = ActivityContent(state: state, staleDate: end)
@@ -45,7 +47,7 @@ final class InsulinActivityManager {
         for activity in activities(for: period) {
             let state = InsulinActivityAttributes.ContentState(
                 periodTitle: period.title,
-                countdownEndsAt: Date(),
+                overdueStartedAt: Date(),
                 isOverdue: false
             )
             await activity.end(ActivityContent(state: state, staleDate: nil), dismissalPolicy: .immediate)

@@ -31,6 +31,7 @@ struct InsulisisCheckApp: App {
         WindowGroup {
             ContentView()
                 .onAppear {
+                    LiveActivityImagePublisher.publishStaticImages()
                     InsulinNotificationManager.shared.configure()
                 }
         }

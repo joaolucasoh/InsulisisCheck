@@ -59,8 +59,8 @@ final class InsulinNotificationManager: NSObject, UNUserNotificationCenterDelega
     private func scheduleDoseNotification(for schedule: DoseSchedule) async {
         await scheduleNotification(
             identifier: notificationIdentifier(for: schedule, suffix: "due"),
-            title: "Hora da insulina da \(schedule.nextPeriod.title.lowercased())",
-            body: "Está na hora de aplicar a insulina da Isis.",
+            title: "Momento de cuidar da Isis 🐾 ❤️",
+            body: "Não esqueça a insulina da \(schedule.nextPeriod.title.lowercased())",
             date: schedule.nextDoseDate,
             interruptionLevel: .timeSensitive
         )
@@ -102,6 +102,9 @@ final class InsulinNotificationManager: NSObject, UNUserNotificationCenterDelega
         content.body = body
         content.sound = .default
         content.interruptionLevel = interruptionLevel
+        content.threadIdentifier = "insulisis-dose-reminders"
+        content.targetContentIdentifier = identifier
+        content.relevanceScore = 1
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
