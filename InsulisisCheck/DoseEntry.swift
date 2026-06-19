@@ -2,6 +2,7 @@ import Foundation
 
 struct DoseEntry: Codable, Identifiable, Hashable {
     static let defaultUnits = 8.0
+    private static let overnightDoseCutoffHour = 6
 
     let id: UUID
     let date: Date
@@ -24,10 +25,28 @@ struct DoseEntry: Codable, Identifiable, Hashable {
     }
 
     var cloudRecordName: String {
-        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: doseDay)
         let year = components.year ?? 0
         let month = components.month ?? 0
         let day = components.day ?? 0
         return String(format: "%04d-%02d-%02d-%@", year, month, day, period.rawValue)
+    }
+
+    var doseDay: Date {
+        doseDay(calendar: .current)
+    }
+
+    func isOnDoseDay(_ day: Date, calendar: Calendar = .current) -> Bool {
+        calendar.isDate(doseDay(calendar: calendar), inSameDayAs: day)
+    }
+
+    func doseDay(calendar: Calendar = .current) -> Date {
+        let hour = calendar.component(.hour, from: date)
+        let belongsToPreviousNight = period == .night && hour < Self.overnightDoseCutoffHour
+        let referenceDate = belongsToPreviousNight
+            ? calendar.date(byAdding: .day, value: -1, to: date) ?? date
+            : date
+
+        return calendar.startOfDay(for: referenceDate)
     }
 }

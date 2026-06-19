@@ -363,6 +363,7 @@
 				DEVELOPMENT_TEAM = 9AL49429D7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CKSharingSupported = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = InsulisisCheck;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -399,6 +400,7 @@
 				DEVELOPMENT_TEAM = 9AL49429D7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CKSharingSupported = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = InsulisisCheck;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;

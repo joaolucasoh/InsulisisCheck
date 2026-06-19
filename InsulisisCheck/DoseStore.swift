@@ -30,7 +30,7 @@ final class DoseStore: ObservableObject {
         )
 
         entries.removeAll {
-            Calendar.current.isDate($0.date, inSameDayAs: date) && $0.period == period
+            $0.period == period && $0.isOnDoseDay(entry.doseDay)
         }
         entries.append(entry)
         entries.sort { $0.date > $1.date }
@@ -83,12 +83,12 @@ final class DoseStore: ObservableObject {
 
     func entry(for period: InsulinPeriod, on date: Date = Date()) -> DoseEntry? {
         entries.first {
-            Calendar.current.isDate($0.date, inSameDayAs: date) && $0.period == period
+            $0.period == period && $0.isOnDoseDay(date)
         }
     }
 
     func entries(on date: Date = Date()) -> [DoseEntry] {
-        entries.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+        entries.filter { $0.isOnDoseDay(date) }
     }
 
     func isComplete(period: InsulinPeriod, on date: Date = Date()) -> Bool {
