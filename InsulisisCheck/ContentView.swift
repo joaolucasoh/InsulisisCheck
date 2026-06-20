@@ -346,14 +346,23 @@ private struct CloudSharingView: View {
 
 private enum CloudSharingErrorMessage {
     static func make(from error: Error) -> String {
+        if let ckError = error as? CKError {
+            return """
+            O iCloud recusou o compartilhamento.
+
+            Detalhes técnicos: \(ckError.localizedDescription)
+            Código CloudKit: \(ckError.code.rawValue)
+            """
+        }
+
         let description = error.localizedDescription
 
         if description.localizedCaseInsensitiveContains("Cannot create new type") ||
             description.localizedCaseInsensitiveContains("production schema") {
             return """
-            O schema de produção do CloudKit ainda não foi publicado para este app.
+            O iCloud recusou o compartilhamento por uma diferença de schema ou permissão em produção.
 
-            Abra o CloudKit Dashboard, entre no container iCloud.com.raven.InsulisisCheck e faça o deploy do schema de Development para Production. Depois disso, tente compartilhar novamente.
+            Detalhes técnicos: \(description)
             """
         }
 

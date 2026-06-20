@@ -74,6 +74,8 @@ final class CloudDoseSync {
 
     func preparedShare() async throws -> (share: CKShare, container: CKContainer) {
         try await ensurePrivateZone()
+        try await deleteExistingShareIfNeeded()
+
         let root = try await rootRecord()
         let share = CKShare(rootRecord: root)
         share[CKShare.SystemFieldKey.title] = "Insulísis Check" as CKRecordValue
@@ -84,13 +86,17 @@ final class CloudDoseSync {
     }
 
     func acceptShare(metadata: CKShare.Metadata) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let operation = CKAcceptSharesOperation(shareMetadatas: [metadata])
             operation.acceptSharesResultBlock = { result in
                 switch result {
                 case .success:
-                    SharedStorage.defaults.set(metadata.rootRecordID.zoneID.zoneName, forKey: self.sharedZoneNameKey)
-                    SharedStorage.defaults.set(metadata.rootRecordID.zoneID.ownerName, forKey: self.sharedZoneOwnerKey)
+                    guard let rootRecordID = metadata.hierarchicalRootRecordID else {
+                        continuation.resume(throwing: CKError(.unknownItem))
+                        return
+                    }
+                    SharedStorage.defaults.set(rootRecordID.zoneID.zoneName, forKey: self.sharedZoneNameKey)
+                    SharedStorage.defaults.set(rootRecordID.zoneID.ownerName, forKey: self.sharedZoneOwnerKey)
                     continuation.resume()
                 case .failure(let error):
                     continuation.resume(throwing: error)
@@ -98,6 +104,13 @@ final class CloudDoseSync {
             }
             container.add(operation)
         }
+    }
+
+    private func deleteExistingShareIfNeeded() async throws {
+        let rootRecordID = CKRecord.ID(recordName: rootRecordName, zoneID: privateZoneID)
+        let root = try await fetchRecord(rootRecordID, in: container.privateCloudDatabase)
+        guard let shareReference = root.share else { return }
+        try await delete(shareReference.recordID, in: container.privateCloudDatabase)
     }
 
     private var privateZoneID: CKRecordZone.ID {
