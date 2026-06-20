@@ -431,7 +431,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = InsulisisCheckLiveActivity/InsulisisCheckLiveActivity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 9AL49429D7;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = InsulisisCheckLiveActivity/Info.plist;
@@ -460,7 +460,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = InsulisisCheckLiveActivity/InsulisisCheckLiveActivity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 9AL49429D7;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = InsulisisCheckLiveActivity/Info.plist;
