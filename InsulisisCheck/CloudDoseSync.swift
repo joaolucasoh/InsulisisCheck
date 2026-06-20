@@ -72,17 +72,24 @@ final class CloudDoseSync {
         }
     }
 
-    func preparedShare() async throws -> (share: CKShare, container: CKContainer) {
+    func preparedShare() async throws -> (share: CKShare, container: CKContainer, invitationURL: URL) {
         try await ensurePrivateZone()
-        try await deleteExistingShareIfNeeded()
-
         let root = try await rootRecord()
-        let share = CKShare(rootRecord: root)
+        let share = try await existingShare(for: root) ?? CKShare(rootRecord: root)
+        let participant = CKShare.Participant.oneTimeURLParticipant()
+        participant.permission = .readWrite
+
         share[CKShare.SystemFieldKey.title] = "Insulísis Check" as CKRecordValue
-        share.publicPermission = .readWrite
+        share.publicPermission = .none
+        share.addParticipant(participant)
 
         try await modify(recordsToSave: [root, share], in: container.privateCloudDatabase)
-        return (share, container)
+
+        guard let invitationURL = share.oneTimeURL(for: participant.participantID) else {
+            throw CKError(.unknownItem)
+        }
+
+        return (share, container, invitationURL)
     }
 
     func acceptShare(metadata: CKShare.Metadata) async throws {
@@ -106,11 +113,10 @@ final class CloudDoseSync {
         }
     }
 
-    private func deleteExistingShareIfNeeded() async throws {
-        let rootRecordID = CKRecord.ID(recordName: rootRecordName, zoneID: privateZoneID)
-        let root = try await fetchRecord(rootRecordID, in: container.privateCloudDatabase)
-        guard let shareReference = root.share else { return }
-        try await delete(shareReference.recordID, in: container.privateCloudDatabase)
+    private func existingShare(for root: CKRecord) async throws -> CKShare? {
+        guard let shareReference = root.share else { return nil }
+        let share = try await fetchRecord(shareReference.recordID, in: container.privateCloudDatabase)
+        return share as? CKShare
     }
 
     private var privateZoneID: CKRecordZone.ID {

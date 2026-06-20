@@ -228,10 +228,9 @@ struct ContentView: View {
 }
 
 private struct CloudSharingView: View {
-    @State private var preparedShare: PreparedCloudShare?
     @State private var shareURL: URL?
     @State private var errorMessage: String?
-    @State private var isCloudSharingPresented = false
+    @State private var isShareSheetPresented = false
 
     var body: some View {
         NavigationStack {
@@ -254,7 +253,7 @@ private struct CloudSharingView: View {
                             .accessibilityIdentifier("sharing.ready.description")
 
                         Button {
-                            isCloudSharingPresented = true
+                            isShareSheetPresented = true
                         } label: {
                             Label("Enviar convite", systemImage: "square.and.arrow.up")
                                 .frame(maxWidth: .infinity)
@@ -271,10 +270,8 @@ private struct CloudSharingView: View {
                     }
                     .padding(24)
                     .accessibilityIdentifier("sharing.ready.container")
-                    .sheet(isPresented: $isCloudSharingPresented) {
-                        if let preparedShare {
-                            CloudSharingController(preparedShare: preparedShare)
-                        }
+                    .sheet(isPresented: $isShareSheetPresented) {
+                        ShareSheet(items: [shareURL])
                     }
             } else if let errorMessage {
                 VStack(spacing: 16) {
@@ -331,27 +328,21 @@ private struct CloudSharingView: View {
 
     @MainActor
     private func prepareShare() async {
-        preparedShare = nil
         shareURL = nil
         errorMessage = nil
 
         do {
             let prepared = try await CloudDoseSync.shared.preparedShare()
-            guard let url = prepared.share.url else {
+            let url = prepared.invitationURL
+            guard !url.absoluteString.isEmpty else {
                 errorMessage = "O iCloud preparou o compartilhamento, mas ainda não retornou um link de convite."
                 return
             }
-            preparedShare = PreparedCloudShare(share: prepared.share, container: prepared.container)
             shareURL = url
         } catch {
             errorMessage = CloudSharingErrorMessage.make(from: error)
         }
     }
-}
-
-private struct PreparedCloudShare {
-    let share: CKShare
-    let container: CKContainer
 }
 
 private enum CloudSharingErrorMessage {
@@ -380,34 +371,14 @@ private enum CloudSharingErrorMessage {
     }
 }
 
-private struct CloudSharingController: UIViewControllerRepresentable {
-    let preparedShare: PreparedCloudShare
+private struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
 
-    func makeUIViewController(context: Context) -> UICloudSharingController {
-        let controller = UICloudSharingController(
-            share: preparedShare.share,
-            container: preparedShare.container
-        )
-        controller.delegate = context.coordinator
-        controller.availablePermissions = [.allowReadWrite, .allowPrivate]
-        return controller
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
 
-    func updateUIViewController(_ uiViewController: UICloudSharingController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    final class Coordinator: NSObject, UICloudSharingControllerDelegate {
-        func itemTitle(for csc: UICloudSharingController) -> String? {
-            "Insulísis Check"
-        }
-
-        func cloudSharingController(_ csc: UICloudSharingController, failedToSaveShareWithError error: Error) {
-            print("Unable to save CloudKit share: \(error.localizedDescription)")
-        }
-    }
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 private struct PeriodStatusCard: View {
