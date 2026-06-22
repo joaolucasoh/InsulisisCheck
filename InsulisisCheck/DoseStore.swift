@@ -9,15 +9,37 @@ final class DoseStore: ObservableObject {
 
     @Published private(set) var entries: [DoseEntry] = []
     @Published private(set) var syncStatus: CloudSyncStatus = .idle
+    @Published private(set) var sessionMode: AppSessionMode?
 
-    private let storageKey = SharedStorage.doseEntriesKey
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
     private init() {
         encoder.dateEncodingStrategy = .iso8601
         decoder.dateDecodingStrategy = .iso8601
+        sessionMode = SharedStorage.defaults.string(forKey: SharedStorage.sessionModeKey)
+            .flatMap(AppSessionMode.init(rawValue:))
         load()
+    }
+
+    func selectSessionMode(_ mode: AppSessionMode) {
+        sessionMode = mode
+        SharedStorage.defaults.set(mode.rawValue, forKey: SharedStorage.sessionModeKey)
+        load()
+
+        if mode.usesCloud {
+            Task { await syncFromCloud() }
+        } else {
+            syncStatus = .idle
+        }
+    }
+
+    func clearSessionMode() {
+        sessionMode = nil
+        entries = []
+        syncStatus = .idle
+        SharedStorage.defaults.removeObject(forKey: SharedStorage.sessionModeKey)
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     func record(period: InsulinPeriod, caregiver: String, units: Double, date: Date = Date()) {
@@ -58,11 +80,17 @@ final class DoseStore: ObservableObject {
     }
 
     func syncFromCloud() async {
+        guard sessionMode?.usesCloud == true else {
+            syncStatus = .idle
+            return
+        }
+
         syncStatus = .syncing
 
         do {
-            let cloudEntries = try await CloudDoseSync.shared.fetchEntries()
+            let cloudEntries = try await CloudDoseSync.shared.fetchCaregiverEntries()
             merge(cloudEntries)
+            try await uploadLocalCaregiverEntries()
             syncStatus = .ready
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
@@ -78,6 +106,25 @@ final class DoseStore: ObservableObject {
             await syncFromCloud()
         } catch {
             syncStatus = .unavailable(error.localizedDescription)
+        }
+    }
+
+    func syncShareInvitation(from shareURL: URL) async {
+        syncStatus = .syncing
+
+        do {
+            CloudShareDiagnostics.record("syncShareInvitation:metadata:start")
+            let metadata = try await CloudDoseSync.shared.shareMetadata(from: shareURL)
+            CloudShareDiagnostics.record("syncShareInvitation:metadata:done")
+            CloudShareDiagnostics.record("syncShareInvitation:accept:start")
+            try await CloudDoseSync.shared.acceptShare(metadata: metadata)
+            CloudShareDiagnostics.record("syncShareInvitation:accept:done")
+            CloudShareDiagnostics.record("syncShareInvitation:sync:start")
+            await syncFromCloud()
+            CloudShareDiagnostics.record("syncShareInvitation:sync:done")
+        } catch {
+            CloudShareDiagnostics.record("syncShareInvitation:error \(error.localizedDescription)")
+            syncStatus = .unavailable(CloudErrorMessage.make(from: error))
         }
     }
 
@@ -98,7 +145,8 @@ final class DoseStore: ObservableObject {
     private func load() {
         migrateLegacyEntriesIfNeeded()
 
-        guard let data = SharedStorage.defaults.data(forKey: storageKey) else {
+        guard let storageKey,
+              let data = SharedStorage.defaults.data(forKey: storageKey) else {
             entries = []
             return
         }
@@ -107,16 +155,22 @@ final class DoseStore: ObservableObject {
     }
 
     private func save() {
+        guard let storageKey else { return }
         guard let data = try? encoder.encode(entries) else { return }
         SharedStorage.defaults.set(data, forKey: storageKey)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
     private func syncEntry(_ entry: DoseEntry) async {
+        guard sessionMode?.usesCloud == true else {
+            syncStatus = .idle
+            return
+        }
+
         syncStatus = .syncing
 
         do {
-            try await CloudDoseSync.shared.save(entry)
+            try await CloudDoseSync.shared.saveCaregiverEntry(entry)
             syncStatus = .ready
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
@@ -125,10 +179,15 @@ final class DoseStore: ObservableObject {
     }
 
     private func deleteEntry(_ entry: DoseEntry) async {
+        guard sessionMode?.usesCloud == true else {
+            syncStatus = .idle
+            return
+        }
+
         syncStatus = .syncing
 
         do {
-            try await CloudDoseSync.shared.delete(entry)
+            try await CloudDoseSync.shared.deleteCaregiverEntry(entry)
             syncStatus = .ready
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
@@ -148,12 +207,43 @@ final class DoseStore: ObservableObject {
         save()
     }
 
+    private func uploadLocalCaregiverEntries() async throws {
+        guard sessionMode?.usesCloud == true else { return }
+
+        for entry in entries {
+            try await CloudDoseSync.shared.saveCaregiverEntry(entry)
+        }
+    }
+
     private func migrateLegacyEntriesIfNeeded() {
-        guard SharedStorage.defaults.data(forKey: storageKey) == nil,
-              let legacyData = UserDefaults.standard.data(forKey: storageKey) else {
+        let legacyData = SharedStorage.defaults.data(forKey: SharedStorage.doseEntriesKey)
+            ?? UserDefaults.standard.data(forKey: SharedStorage.doseEntriesKey)
+
+        guard let legacyData else {
             return
         }
 
-        SharedStorage.defaults.set(legacyData, forKey: storageKey)
+        guard let legacyEntries = try? decoder.decode([DoseEntry].self, from: legacyData),
+              !legacyEntries.isEmpty else {
+            return
+        }
+
+        let currentData = SharedStorage.defaults.data(forKey: SharedStorage.caregiverDoseEntriesKey)
+        let currentEntries = currentData.flatMap { try? decoder.decode([DoseEntry].self, from: $0) } ?? []
+
+        var merged = Dictionary(uniqueKeysWithValues: currentEntries.map { ($0.cloudRecordName, $0) })
+        for entry in legacyEntries {
+            merged[entry.cloudRecordName] = entry
+        }
+
+        guard let mergedData = try? encoder.encode(merged.values.sorted(by: { $0.date > $1.date })) else {
+            return
+        }
+
+        SharedStorage.defaults.set(mergedData, forKey: SharedStorage.caregiverDoseEntriesKey)
+    }
+
+    private var storageKey: String? {
+        sessionMode?.storageKey
     }
 }

@@ -7,6 +7,7 @@ struct ContentView: View {
     @StateObject private var store = DoseStore.shared
     @State private var manualPeriod: InsulinPeriod?
     @State private var isSharingPresented = false
+    @State private var isInviteAcceptancePresented = false
     private let refreshTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     private var todayTitle: String {
@@ -14,7 +15,10 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        if store.sessionMode == nil {
+            SessionModeSelectionView(store: store)
+        } else {
+            NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     header
@@ -46,12 +50,16 @@ struct ContentView: View {
             .accessibilityIdentifier("home.navigation")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        isSharingPresented = true
+                    Menu {
+                        Button {
+                            store.clearSessionMode()
+                        } label: {
+                            Label("Trocar modo", systemImage: "arrow.left.arrow.right")
+                        }
                     } label: {
-                        Label("Compartilhar com Sheila", systemImage: "person.2.badge.plus")
+                        Label(store.sessionMode?.title ?? "Sessão", systemImage: "person.2")
                     }
-                    .accessibilityIdentifier("home.share-with-sheila.button")
+                    .accessibilityIdentifier("home.session.menu")
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -65,9 +73,6 @@ struct ContentView: View {
             }
             .sheet(item: $manualPeriod) { period in
                 ManualEntryView(period: period, store: store)
-            }
-            .sheet(isPresented: $isSharingPresented) {
-                CloudSharingView()
             }
             .task {
                 await store.syncFromCloud()
@@ -85,6 +90,7 @@ struct ContentView: View {
                     await InsulinActivityManager.shared.refresh(store: store)
                 }
             }
+        }
         }
     }
 
@@ -227,9 +233,134 @@ struct ContentView: View {
     }
 }
 
+private struct SessionModeSelectionView: View {
+    @ObservedObject var store: DoseStore
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 18) {
+                Spacer(minLength: 24)
+
+                AppIconLogoView(size: 104)
+                    .accessibilityIdentifier("session-selection.image")
+
+                Text("Insulísis Check")
+                    .font(.largeTitle.bold())
+                    .accessibilityIdentifier("session-selection.title")
+
+                Text("Escolha como este iPhone vai usar os apontamentos.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("session-selection.subtitle")
+
+                VStack(spacing: 12) {
+                    Button {
+                        store.selectSessionMode(.caregiver)
+                    } label: {
+                        SessionModeOptionLabel(
+                            title: "Cuidador",
+                            subtitle: "Usa os dados reais compartilhados entre os iPhones.",
+                            systemImage: "person.2.fill"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("session-selection.caregiver.button")
+
+                    Button {
+                        store.selectSessionMode(.testOnly)
+                    } label: {
+                        SessionModeOptionLabel(
+                            title: "Test only",
+                            subtitle: "Cria um ambiente local separado para testar o app.",
+                            systemImage: "testtube.2"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("session-selection.test-only.button")
+                }
+
+                Spacer()
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(.systemGroupedBackground))
+            .navigationBarTitleDisplayMode(.inline)
+            .accessibilityIdentifier("session-selection.container")
+        }
+    }
+}
+
+private struct AppIconLogoView: View {
+    let size: CGFloat
+
+    var body: some View {
+        Group {
+            if let appIcon {
+                Image(uiImage: appIcon)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image("IsisNeutral")
+                    .resizable()
+                    .scaledToFill()
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var appIcon: UIImage? {
+        guard let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
+              let primaryIcon = icons["CFBundlePrimaryIcon"] as? [String: Any],
+              let iconFiles = primaryIcon["CFBundleIconFiles"] as? [String],
+              let iconName = iconFiles.last else {
+            return nil
+        }
+
+        return UIImage(named: iconName)
+    }
+}
+
+private struct SessionModeOptionLabel: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: systemImage)
+                .font(.title2)
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .background(.background, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
 private struct CloudSharingView: View {
     @State private var shareURL: URL?
+    @State private var inviteText: String?
     @State private var errorMessage: String?
+    @State private var diagnosticText = CloudShareDiagnostics.text
     @State private var isShareSheetPresented = false
 
     var body: some View {
@@ -267,11 +398,22 @@ private struct CloudSharingView: View {
                             .lineLimit(2)
                             .truncationMode(.middle)
                             .accessibilityIdentifier("sharing.invite-url.label")
+
+                        if let inviteText {
+                            Text(inviteText)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(10)
+                                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                .accessibilityIdentifier("sharing.invite-text.label")
+                        }
                     }
                     .padding(24)
                     .accessibilityIdentifier("sharing.ready.container")
                     .sheet(isPresented: $isShareSheetPresented) {
-                        ShareSheet(items: [shareURL])
+                        ShareSheet(items: [inviteText ?? shareURL.absoluteString])
                     }
             } else if let errorMessage {
                 VStack(spacing: 16) {
@@ -290,6 +432,8 @@ private struct CloudSharingView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .accessibilityIdentifier("sharing.error.message")
+
+                    diagnosticLog
 
                     Button("Tentar novamente") {
                         Task { await prepareShare() }
@@ -312,6 +456,8 @@ private struct CloudSharingView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .accessibilityIdentifier("sharing.loading.subtitle")
+
+                    diagnosticLog
                 }
                 .padding(24)
                 .accessibilityIdentifier("sharing.loading.container")
@@ -326,20 +472,47 @@ private struct CloudSharingView: View {
         }
     }
 
+    private var diagnosticLog: some View {
+        Group {
+            if !diagnosticText.isEmpty {
+                Text(diagnosticText)
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .accessibilityIdentifier("sharing.diagnostic-log")
+            }
+        }
+    }
+
     @MainActor
     private func prepareShare() async {
         shareURL = nil
+        inviteText = nil
         errorMessage = nil
+        diagnosticText = CloudShareDiagnostics.text
 
         do {
             let prepared = try await CloudDoseSync.shared.preparedShare()
+            diagnosticText = CloudShareDiagnostics.text
             let url = prepared.invitationURL
             guard !url.absoluteString.isEmpty else {
                 errorMessage = "O iCloud preparou o compartilhamento, mas ainda não retornou um link de convite."
                 return
             }
-            shareURL = url
+            let appURL = CloudInviteLink.appURL(for: url) ?? url
+            shareURL = appURL
+            inviteText = """
+            Convite do Insulísis Check.
+
+            Abra o app InsulisisCheck, toque em iCloud > Aceitar convite e cole este texto:
+
+            \(appURL.absoluteString)
+            """
         } catch {
+            diagnosticText = CloudShareDiagnostics.text
             errorMessage = CloudSharingErrorMessage.make(from: error)
         }
     }
@@ -347,27 +520,7 @@ private struct CloudSharingView: View {
 
 private enum CloudSharingErrorMessage {
     static func make(from error: Error) -> String {
-        if let ckError = error as? CKError {
-            return """
-            O iCloud recusou o compartilhamento.
-
-            Detalhes técnicos: \(ckError.localizedDescription)
-            Código CloudKit: \(ckError.code.rawValue)
-            """
-        }
-
-        let description = error.localizedDescription
-
-        if description.localizedCaseInsensitiveContains("Cannot create new type") ||
-            description.localizedCaseInsensitiveContains("production schema") {
-            return """
-            O iCloud recusou o compartilhamento por uma diferença de schema ou permissão em produção.
-
-            Detalhes técnicos: \(description)
-            """
-        }
-
-        return description
+        CloudErrorMessage.make(from: error)
     }
 }
 
@@ -379,6 +532,123 @@ private struct ShareSheet: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+private struct InviteAcceptanceView: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var store: DoseStore
+    @State private var inviteText = ""
+    @State private var statusMessage: String?
+    @State private var diagnosticText = CloudShareDiagnostics.text
+    @State private var isAccepting = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Cole aqui o convite recebido. Pode ser o texto inteiro da mensagem.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("invite-accept.description")
+
+                TextEditor(text: $inviteText)
+                    .font(.body)
+                    .frame(minHeight: 150)
+                    .padding(8)
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .accessibilityIdentifier("invite-accept.text-editor")
+
+                HStack {
+                    Button {
+                        inviteText = UIPasteboard.general.string ?? ""
+                    } label: {
+                        Label("Colar", systemImage: "doc.on.clipboard")
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("invite-accept.paste.button")
+
+                    Button {
+                        Task { await acceptInvite() }
+                    } label: {
+                        if isAccepting {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                        } else {
+                            Label("Aceitar convite", systemImage: "checkmark.icloud")
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isAccepting || inviteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityIdentifier("invite-accept.accept.button")
+                }
+
+                if let statusMessage {
+                    Text(statusMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("invite-accept.status")
+                }
+
+                if !diagnosticText.isEmpty {
+                    Text(diagnosticText)
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .accessibilityIdentifier("invite-accept.diagnostic-log")
+                }
+
+                Spacer()
+            }
+            .padding(20)
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Aceitar convite")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fechar") {
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                if inviteText.isEmpty,
+                   let pastedText = UIPasteboard.general.string,
+                   CloudInviteLink.shareURL(fromText: pastedText) != nil {
+                    inviteText = pastedText
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func acceptInvite() async {
+        guard let shareURL = CloudInviteLink.shareURL(fromText: inviteText) else {
+            statusMessage = "Não encontrei um convite válido nesse texto."
+            return
+        }
+
+        CloudShareDiagnostics.clear()
+        diagnosticText = ""
+        isAccepting = true
+        statusMessage = "Aceitando convite pelo iCloud..."
+
+        await store.syncShareInvitation(from: shareURL)
+
+        isAccepting = false
+        diagnosticText = CloudShareDiagnostics.text
+        switch store.syncStatus {
+        case .ready:
+            statusMessage = "Convite aceito. Sincronização ativada."
+        case .unavailable(let message):
+            statusMessage = "Não deu para aceitar o convite: \(message)"
+        case .idle, .syncing:
+            statusMessage = "Convite processado."
+        }
+    }
 }
 
 private struct PeriodStatusCard: View {

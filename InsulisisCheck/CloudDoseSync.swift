@@ -8,6 +8,123 @@ enum CloudSyncStatus: Equatable {
     case unavailable(String)
 }
 
+enum CloudShareDiagnostics {
+    private static let key = "insulisis.shareDiagnostics"
+
+    static var text: String {
+        SharedStorage.defaults.stringArray(forKey: key)?.joined(separator: "\n") ?? ""
+    }
+
+    static func clear() {
+        SharedStorage.defaults.removeObject(forKey: key)
+    }
+
+    static func record(_ message: String) {
+        let timestamp = ISO8601DateFormatter().string(from: Date())
+        let line = "\(timestamp) \(message)"
+        print(line)
+
+        var lines = SharedStorage.defaults.stringArray(forKey: key) ?? []
+        lines.append(line)
+        lines = Array(lines.suffix(30))
+        SharedStorage.defaults.set(lines, forKey: key)
+    }
+}
+
+enum CloudInviteLink {
+    private static let scheme = "insulisischeck"
+    private static let host = "accept-share"
+    private static let shareQueryItemName = "share"
+
+    static func appURL(for shareURL: URL) -> URL? {
+        var components = URLComponents()
+        components.scheme = scheme
+        components.host = host
+        components.queryItems = [
+            URLQueryItem(name: shareQueryItemName, value: shareURL.absoluteString)
+        ]
+        return components.url
+    }
+
+    static func shareURL(from appURL: URL) -> URL? {
+        guard appURL.scheme == scheme,
+              appURL.host == host,
+              let components = URLComponents(url: appURL, resolvingAgainstBaseURL: false),
+              let shareURLString = components.queryItems?.first(where: { $0.name == shareQueryItemName })?.value else {
+            return nil
+        }
+
+        return URL(string: shareURLString)
+    }
+
+    static func shareURL(fromText text: String) -> URL? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let url = URL(string: trimmed) {
+            if let shareURL = shareURL(from: url) {
+                return shareURL
+            }
+
+            if isCloudKitShareURL(url) {
+                return url
+            }
+        }
+
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else {
+            return nil
+        }
+
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        for match in detector.matches(in: text, range: range) {
+            guard let url = match.url else { continue }
+
+            if let shareURL = shareURL(from: url) {
+                return shareURL
+            }
+
+            if isCloudKitShareURL(url) {
+                return url
+            }
+        }
+
+        return nil
+    }
+
+    private static func isCloudKitShareURL(_ url: URL) -> Bool {
+        url.scheme?.localizedCaseInsensitiveCompare("https") == .orderedSame &&
+            url.host?.localizedCaseInsensitiveCompare("www.icloud.com") == .orderedSame &&
+            url.path.localizedCaseInsensitiveContains("/share/")
+    }
+}
+
+enum CloudErrorMessage {
+    static func make(from error: Error) -> String {
+        let description = error.localizedDescription
+
+        if description.localizedCaseInsensitiveContains("recordName") &&
+            description.localizedCaseInsensitiveContains("queryable") {
+            return """
+            O CloudKit Production está sem um índice necessário.
+
+            No CloudKit Dashboard, vá em Development > Schema > Indexes e adicione recordName como queryable no tipo cloudkit.share. Se o Dashboard também mostrar recordName em InsulisisFamily, marque queryable nele também. Depois faça Deploy Schema Changes para Production e tente aceitar o convite novamente.
+
+            Detalhes técnicos: \(description)
+            """
+        }
+
+        if let ckError = error as? CKError {
+            return """
+            O iCloud recusou a operação.
+
+            Detalhes técnicos: \(ckError.localizedDescription)
+            Código CloudKit: \(ckError.code.rawValue)
+            """
+        }
+
+        return description
+    }
+}
+
 final class CloudDoseSync {
     static let shared = CloudDoseSync()
 
@@ -17,10 +134,32 @@ final class CloudDoseSync {
     private let rootRecordName = "isis-family"
     private let doseRecordType = "DoseEntry"
     private let familyRecordType = "InsulisisFamily"
+    private let caregiverSessionID = "isis-caregiver"
     private let sharedZoneNameKey = "insulisis.sharedZoneName"
     private let sharedZoneOwnerKey = "insulisis.sharedZoneOwner"
 
     private init() {}
+
+    func fetchCaregiverEntries() async throws -> [DoseEntry] {
+        return try await fetchEntries(
+            database: container.publicCloudDatabase,
+            zoneID: nil,
+            predicate: NSPredicate(value: true)
+        )
+    }
+
+    func saveCaregiverEntry(_ entry: DoseEntry) async throws {
+        let recordID = CKRecord.ID(recordName: caregiverRecordName(for: entry))
+        let record = CKRecord(recordType: doseRecordType, recordID: recordID)
+        fill(record, with: entry)
+
+        _ = try await save(record, in: container.publicCloudDatabase)
+    }
+
+    func deleteCaregiverEntry(_ entry: DoseEntry) async throws {
+        let recordID = CKRecord.ID(recordName: caregiverRecordName(for: entry))
+        try await delete(recordID, in: container.publicCloudDatabase)
+    }
 
     func fetchEntries() async throws -> [DoseEntry] {
         try await ensurePrivateZone()
@@ -73,21 +212,34 @@ final class CloudDoseSync {
     }
 
     func preparedShare() async throws -> (share: CKShare, container: CKContainer, invitationURL: URL) {
+        CloudShareDiagnostics.clear()
+        CloudShareDiagnostics.record("preparedShare:start")
+
+        CloudShareDiagnostics.record("preparedShare:ensurePrivateZone:start")
         try await ensurePrivateZone()
+        CloudShareDiagnostics.record("preparedShare:ensurePrivateZone:done")
+
+        CloudShareDiagnostics.record("preparedShare:rootRecord:start")
         let root = try await rootRecord()
+        CloudShareDiagnostics.record("preparedShare:rootRecord:done \(root.recordID.recordName)")
+
+        CloudShareDiagnostics.record("preparedShare:existingShare:start")
         let share = try await existingShare(for: root) ?? CKShare(rootRecord: root)
-        let participant = CKShare.Participant.oneTimeURLParticipant()
-        participant.permission = .readWrite
+        CloudShareDiagnostics.record("preparedShare:existingShare:done \(share.recordID.recordName)")
 
         share[CKShare.SystemFieldKey.title] = "Insulísis Check" as CKRecordValue
-        share.publicPermission = .none
-        share.addParticipant(participant)
+        share.publicPermission = .readWrite
 
+        CloudShareDiagnostics.record("preparedShare:modify:start")
         try await modify(recordsToSave: [root, share], in: container.privateCloudDatabase)
+        CloudShareDiagnostics.record("preparedShare:modify:done")
 
-        guard let invitationURL = share.oneTimeURL(for: participant.participantID) else {
+        CloudShareDiagnostics.record("preparedShare:shareURL:start")
+        guard let invitationURL = share.url else {
+            CloudShareDiagnostics.record("preparedShare:shareURL:nil")
             throw CKError(.unknownItem)
         }
+        CloudShareDiagnostics.record("preparedShare:shareURL:done \(invitationURL.absoluteString)")
 
         return (share, container, invitationURL)
     }
@@ -109,6 +261,47 @@ final class CloudDoseSync {
                     continuation.resume(throwing: error)
                 }
             }
+            container.add(operation)
+        }
+    }
+
+    func shareMetadata(from shareURL: URL) async throws -> CKShare.Metadata {
+        CloudShareDiagnostics.record("shareMetadata:start \(shareURL.absoluteString)")
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let operation = CKFetchShareMetadataOperation(shareURLs: [shareURL])
+            operation.shouldFetchRootRecord = true
+
+            var fetchedMetadata: CKShare.Metadata?
+            var fetchError: Error?
+
+            operation.perShareMetadataResultBlock = { _, result in
+                switch result {
+                case .success(let metadata):
+                    CloudShareDiagnostics.record("shareMetadata:perURL:success")
+                    fetchedMetadata = metadata
+                case .failure(let error):
+                    CloudShareDiagnostics.record("shareMetadata:perURL:error \(error.localizedDescription)")
+                    fetchError = error
+                }
+            }
+
+            operation.fetchShareMetadataResultBlock = { result in
+                switch result {
+                case .success:
+                    if let fetchedMetadata {
+                        CloudShareDiagnostics.record("shareMetadata:done")
+                        continuation.resume(returning: fetchedMetadata)
+                    } else {
+                        CloudShareDiagnostics.record("shareMetadata:nil")
+                        continuation.resume(throwing: fetchError ?? CKError(.unknownItem))
+                    }
+                case .failure(let error):
+                    CloudShareDiagnostics.record("shareMetadata:error \(error.localizedDescription)")
+                    continuation.resume(throwing: fetchError ?? error)
+                }
+            }
+
             container.add(operation)
         }
     }
@@ -184,8 +377,16 @@ final class CloudDoseSync {
     }
 
     private func fetchEntries(database: CKDatabase, zoneID: CKRecordZone.ID) async throws -> [DoseEntry] {
+        try await fetchEntries(
+            database: database,
+            zoneID: zoneID,
+            predicate: NSPredicate(value: true)
+        )
+    }
+
+    private func fetchEntries(database: CKDatabase, zoneID: CKRecordZone.ID?, predicate: NSPredicate) async throws -> [DoseEntry] {
         try await withCheckedThrowingContinuation { continuation in
-            let query = CKQuery(recordType: doseRecordType, predicate: NSPredicate(value: true))
+            let query = CKQuery(recordType: doseRecordType, predicate: predicate)
             query.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
 
             let operation = CKQueryOperation(query: query)
@@ -294,6 +495,10 @@ final class CloudDoseSync {
         record["period"] = entry.period.rawValue as CKRecordValue
         record["caregiver"] = entry.caregiver as CKRecordValue
         record["units"] = entry.units as CKRecordValue
+    }
+
+    private func caregiverRecordName(for entry: DoseEntry) -> String {
+        "\(caregiverSessionID)-\(entry.cloudRecordName)"
     }
 
     private static func entry(from record: CKRecord) -> DoseEntry? {

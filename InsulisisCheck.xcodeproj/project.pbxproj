@@ -364,6 +364,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = InsulisisCheck;
+				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleURLName = \"com.raven.InsulisisCheck\";\n    CFBundleURLSchemes =     (\n        insulisischeck\n    );\n}";
 				INFOPLIST_KEY_CKSharingSupported = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -401,6 +402,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = InsulisisCheck;
+				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleURLName = \"com.raven.InsulisisCheck\";\n    CFBundleURLSchemes =     (\n        insulisischeck\n    );\n}";
 				INFOPLIST_KEY_CKSharingSupported = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -431,7 +433,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = InsulisisCheckLiveActivity/InsulisisCheckLiveActivity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 9AL49429D7;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = InsulisisCheckLiveActivity/Info.plist;
@@ -460,7 +462,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = InsulisisCheckLiveActivity/InsulisisCheckLiveActivity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 9AL49429D7;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = InsulisisCheckLiveActivity/Info.plist;

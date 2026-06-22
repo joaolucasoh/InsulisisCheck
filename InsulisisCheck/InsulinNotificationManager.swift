@@ -7,6 +7,7 @@ final class InsulinNotificationManager: NSObject, UNUserNotificationCenterDelega
     private let center = UNUserNotificationCenter.current()
     private let notificationPrefix = "insulisis-dose-reminder"
     private let overdueOffsets: [Int] = [15, 30, 60]
+    private let customSoundName = "dog-bark.caf"
 
     private override init() {
         super.init()
@@ -100,7 +101,7 @@ final class InsulinNotificationManager: NSObject, UNUserNotificationCenterDelega
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        content.sound = .default
+        content.sound = notificationSound
         content.interruptionLevel = interruptionLevel
         content.threadIdentifier = "insulisis-dose-reminders"
         content.targetContentIdentifier = identifier
@@ -115,5 +116,13 @@ final class InsulinNotificationManager: NSObject, UNUserNotificationCenterDelega
     private func notificationIdentifier(for schedule: DoseSchedule, suffix: String) -> String {
         let dateText = ISO8601DateFormatter().string(from: schedule.nextDoseDate)
         return "\(notificationPrefix)-\(schedule.nextPeriod.rawValue)-\(dateText)-\(suffix)"
+    }
+
+    private var notificationSound: UNNotificationSound {
+        guard Bundle.main.url(forResource: "dog-bark", withExtension: "caf") != nil else {
+            return .default
+        }
+
+        return UNNotificationSound(named: UNNotificationSoundName(customSoundName))
     }
 }

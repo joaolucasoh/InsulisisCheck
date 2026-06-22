@@ -434,10 +434,3 @@ private extension Date {
         return "\(hourText) e \(minuteText)"
     }
 }
-
-#Preview(as: .systemLarge) {
-    InsulisisStatusWidget()
-} timeline: {
-    InsulisisStatusEntry(date: .now, status: .waiting(periodTitle: "Manhã", nextDoseDate: .now.addingTimeInterval(3_600)))
-    InsulisisStatusEntry(date: .now, status: .overdue(periodTitle: "Noite", nextDoseDate: .now.addingTimeInterval(-900)))
-}

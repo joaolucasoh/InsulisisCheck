@@ -34,6 +34,14 @@ struct InsulisisCheckApp: App {
                     LiveActivityImagePublisher.publishStaticImages()
                     InsulinNotificationManager.shared.configure()
                 }
+                .onOpenURL { url in
+                    guard let shareURL = CloudInviteLink.shareURL(from: url) else { return }
+                    Task {
+                        await store.syncShareInvitation(from: shareURL)
+                        await InsulinActivityManager.shared.refresh(store: store)
+                        await InsulinNotificationManager.shared.refresh(entries: store.entries)
+                    }
+                }
         }
         .onChange(of: scenePhase) {
             guard scenePhase == .active else { return }
