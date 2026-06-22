@@ -88,10 +88,12 @@ final class DoseStore: ObservableObject {
         syncStatus = .syncing
 
         do {
-            try await uploadLocalCaregiverEntries()
+            let uploadedCount = try await uploadLocalCaregiverEntries()
             let cloudEntries = try await CloudDoseSync.shared.fetchCaregiverEntries()
             merge(cloudEntries)
-            syncStatus = .ready
+            syncStatus = .ready(
+                "Enviadas \(uploadedCount) dose(s) deste iPhone. Encontradas \(cloudEntries.count) dose(s) no iCloud."
+            )
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
             syncStatus = .unavailable(CloudErrorMessage.make(from: error))
@@ -171,7 +173,7 @@ final class DoseStore: ObservableObject {
 
         do {
             try await CloudDoseSync.shared.saveCaregiverEntry(entry)
-            syncStatus = .ready
+            syncStatus = .ready("Dose salva no iCloud.")
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
             syncStatus = .unavailable(CloudErrorMessage.make(from: error))
@@ -188,7 +190,7 @@ final class DoseStore: ObservableObject {
 
         do {
             try await CloudDoseSync.shared.deleteCaregiverEntry(entry)
-            syncStatus = .ready
+            syncStatus = .ready("Dose removida do iCloud.")
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
             syncStatus = .unavailable(CloudErrorMessage.make(from: error))
@@ -207,12 +209,16 @@ final class DoseStore: ObservableObject {
         save()
     }
 
-    private func uploadLocalCaregiverEntries() async throws {
-        guard sessionMode?.usesCloud == true else { return }
+    private func uploadLocalCaregiverEntries() async throws -> Int {
+        guard sessionMode?.usesCloud == true else { return 0 }
 
+        var uploadedCount = 0
         for entry in entries {
             try await CloudDoseSync.shared.saveCaregiverEntry(entry)
+            uploadedCount += 1
         }
+
+        return uploadedCount
     }
 
     private func migrateLegacyEntriesIfNeeded() {

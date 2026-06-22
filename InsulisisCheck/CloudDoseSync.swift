@@ -4,7 +4,7 @@ import Foundation
 enum CloudSyncStatus: Equatable {
     case idle
     case syncing
-    case ready
+    case ready(String)
     case unavailable(String)
 }
 

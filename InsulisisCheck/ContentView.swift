@@ -284,7 +284,7 @@ private struct SyncStatusBanner: View {
             return "Sincronização pronta para iniciar"
         case .syncing:
             return "Sincronizando dados reais"
-        case .ready:
+        case .ready(_):
             return "Dados reais sincronizados"
         case .unavailable:
             return "Sincronização indisponível"
@@ -297,8 +297,8 @@ private struct SyncStatusBanner: View {
             return "O modo Cuidador usa o iCloud para compartilhar o histórico entre os iPhones."
         case .syncing:
             return "Enviando apontamentos deste iPhone e buscando o histórico no iCloud."
-        case .ready:
-            return "Este iPhone está usando o histórico compartilhado do modo Cuidador."
+        case .ready(let message):
+            return message
         case .unavailable(let message):
             return message
         }
@@ -310,7 +310,7 @@ private struct SyncStatusBanner: View {
             return "icloud"
         case .syncing:
             return "icloud.and.arrow.up"
-        case .ready:
+        case .ready(_):
             return "checkmark.icloud"
         case .unavailable:
             return "exclamationmark.icloud"
@@ -321,7 +321,7 @@ private struct SyncStatusBanner: View {
         switch status {
         case .idle, .syncing:
             return .blue
-        case .ready:
+        case .ready(_):
             return .green
         case .unavailable:
             return .orange
@@ -737,7 +737,7 @@ private struct InviteAcceptanceView: View {
         isAccepting = false
         diagnosticText = CloudShareDiagnostics.text
         switch store.syncStatus {
-        case .ready:
+        case .ready(_):
             statusMessage = "Convite aceito. Sincronização ativada."
         case .unavailable(let message):
             statusMessage = "Não deu para aceitar o convite: \(message)"
