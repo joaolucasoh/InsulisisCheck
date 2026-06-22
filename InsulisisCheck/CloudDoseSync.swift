@@ -146,27 +146,33 @@ final class CloudDoseSync {
     private let doseRecordType = "DoseEntry"
     private let familyRecordType = "InsulisisFamily"
     private let caregiverSessionID = "isis-caregiver"
+    private let caregiverIndexRecordName = "isis-caregiver-index"
     private let sharedZoneNameKey = "insulisis.sharedZoneName"
     private let sharedZoneOwnerKey = "insulisis.sharedZoneOwner"
 
     private init() {}
 
     func fetchCaregiverEntries() async throws -> [DoseEntry] {
-        return try await fetchEntries(
-            database: container.publicCloudDatabase,
-            zoneID: nil,
-            predicate: NSPredicate(value: true)
-        )
+        let index = try await caregiverIndexRecord()
+        let recordNames = caregiverRecordNames(from: index)
+
+        guard !recordNames.isEmpty else { return [] }
+
+        let recordIDs = recordNames.map { CKRecord.ID(recordName: $0) }
+        let records = try await fetchRecords(recordIDs, in: container.publicCloudDatabase)
+        return deduplicated(records.compactMap(Self.entry(from:)))
     }
 
     func saveCaregiverEntry(_ entry: DoseEntry) async throws {
         let recordID = CKRecord.ID(recordName: caregiverRecordName(for: entry))
         try await saveDoseEntry(entry, recordID: recordID, in: container.publicCloudDatabase)
+        try await updateCaregiverIndex(adding: recordID.recordName)
     }
 
     func deleteCaregiverEntry(_ entry: DoseEntry) async throws {
         let recordID = CKRecord.ID(recordName: caregiverRecordName(for: entry))
         try await delete(recordID, in: container.publicCloudDatabase)
+        try await updateCaregiverIndex(removing: recordID.recordName)
     }
 
     func fetchEntries() async throws -> [DoseEntry] {
@@ -455,6 +461,49 @@ final class CloudDoseSync {
         _ = try await save(record, in: database)
     }
 
+    private func caregiverIndexRecord() async throws -> CKRecord {
+        let recordID = CKRecord.ID(recordName: caregiverIndexRecordName)
+
+        do {
+            return try await fetchRecord(recordID, in: container.publicCloudDatabase)
+        } catch let error as CKError where error.code == .unknownItem {
+            return CKRecord(recordType: doseRecordType, recordID: recordID)
+        }
+    }
+
+    private func updateCaregiverIndex(adding recordName: String) async throws {
+        let record = try await caregiverIndexRecord()
+        var recordNames = caregiverRecordNames(from: record)
+
+        if !recordNames.contains(recordName) {
+            recordNames.append(recordName)
+        }
+
+        writeCaregiverRecordNames(recordNames, to: record)
+        _ = try await save(record, in: container.publicCloudDatabase)
+    }
+
+    private func updateCaregiverIndex(removing recordName: String) async throws {
+        let record = try await caregiverIndexRecord()
+        let recordNames = caregiverRecordNames(from: record).filter { $0 != recordName }
+
+        writeCaregiverRecordNames(recordNames, to: record)
+        _ = try await save(record, in: container.publicCloudDatabase)
+    }
+
+    private func caregiverRecordNames(from record: CKRecord) -> [String] {
+        guard let text = record["caregiver"] as? String else { return [] }
+
+        return text
+            .split(separator: "\n")
+            .map(String.init)
+            .filter { !$0.isEmpty }
+    }
+
+    private func writeCaregiverRecordNames(_ recordNames: [String], to record: CKRecord) {
+        record["caregiver"] = recordNames.sorted().joined(separator: "\n") as CKRecordValue
+    }
+
     private func modify(recordsToSave: [CKRecord], in database: CKDatabase) async throws {
         try await withCheckedThrowingContinuation { continuation in
             let operation = CKModifyRecordsOperation(recordsToSave: recordsToSave, recordIDsToDelete: nil)
@@ -504,6 +553,32 @@ final class CloudDoseSync {
 
                 continuation.resume(returning: record)
             }
+        }
+    }
+
+    private func fetchRecords(_ recordIDs: [CKRecord.ID], in database: CKDatabase) async throws -> [CKRecord] {
+        guard !recordIDs.isEmpty else { return [] }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let operation = CKFetchRecordsOperation(recordIDs: recordIDs)
+            var records: [CKRecord] = []
+
+            operation.perRecordResultBlock = { _, result in
+                if case .success(let record) = result {
+                    records.append(record)
+                }
+            }
+
+            operation.fetchRecordsResultBlock = { result in
+                switch result {
+                case .success:
+                    continuation.resume(returning: records)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+
+            database.add(operation)
         }
     }
 
