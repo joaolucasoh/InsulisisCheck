@@ -47,7 +47,6 @@ struct InsulisisCheckApp: App {
             guard scenePhase == .active else { return }
             WidgetCenter.shared.reloadAllTimelines()
             Task {
-                await store.syncFromCloud()
                 await InsulinActivityManager.shared.refresh(store: store)
                 await InsulinNotificationManager.shared.refresh(entries: store.entries)
             }

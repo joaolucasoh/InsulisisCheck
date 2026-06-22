@@ -4,10 +4,13 @@ import SwiftUI
 import UIKit
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var store = DoseStore.shared
     @State private var manualPeriod: InsulinPeriod?
     @State private var isSharingPresented = false
     @State private var isInviteAcceptancePresented = false
+    @State private var isOpeningSyncVisible = false
+    @State private var isOpeningSyncRunning = false
     private let refreshTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     private var todayTitle: String {
@@ -82,9 +85,7 @@ struct ContentView: View {
                 ManualEntryView(period: period, store: store)
             }
             .task {
-                await store.syncFromCloud()
-                await InsulinActivityManager.shared.refresh(store: store)
-                await InsulinNotificationManager.shared.refresh(entries: store.entries)
+                await refreshAfterOpening()
             }
             .onChange(of: store.entries) {
                 Task {
@@ -92,13 +93,51 @@ struct ContentView: View {
                     await InsulinNotificationManager.shared.refresh(entries: store.entries)
                 }
             }
+            .onChange(of: scenePhase) {
+                guard scenePhase == .active else { return }
+                Task { await refreshAfterOpening() }
+            }
             .onReceive(refreshTimer) { _ in
                 Task {
                     await InsulinActivityManager.shared.refresh(store: store)
                 }
             }
+            .overlay {
+                if isOpeningSyncVisible {
+                    OpeningSyncOverlay()
+                        .transition(.opacity)
+                        .accessibilityIdentifier("home.opening-sync-overlay")
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: isOpeningSyncVisible)
         }
         }
+    }
+
+    private func refreshAfterOpening() async {
+        guard !isOpeningSyncRunning else { return }
+
+        isOpeningSyncRunning = true
+        let shouldShowLoading = store.sessionMode == .caregiver
+        let start = Date()
+
+        if shouldShowLoading {
+            isOpeningSyncVisible = true
+        }
+
+        await store.syncFromCloud()
+        await InsulinActivityManager.shared.refresh(store: store)
+        await InsulinNotificationManager.shared.refresh(entries: store.entries)
+
+        if shouldShowLoading {
+            let elapsed = Date().timeIntervalSince(start)
+            if elapsed < 0.8 {
+                try? await Task.sleep(nanoseconds: UInt64((0.8 - elapsed) * 1_000_000_000))
+            }
+            isOpeningSyncVisible = false
+        }
+
+        isOpeningSyncRunning = false
     }
 
     private var header: some View {
@@ -237,6 +276,59 @@ struct ContentView: View {
 
     private func isOverdue(_ period: InsulinPeriod) -> Bool {
         currentSchedule.isOverdue && currentSchedule.nextPeriod == period
+    }
+}
+
+private struct OpeningSyncOverlay: View {
+    @State private var isRotating = false
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.28)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .stroke(Color.accentColor.opacity(0.18), lineWidth: 8)
+                        .frame(width: 86, height: 86)
+
+                    Image(systemName: "drop.fill")
+                        .font(.title)
+                        .foregroundStyle(Color.accentColor)
+
+                    Image(systemName: "syringe")
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 42, height: 42)
+                        .background(Color.accentColor, in: Circle())
+                        .offset(y: -43)
+                        .rotationEffect(.degrees(isRotating ? 360 : 0))
+                }
+                .frame(width: 112, height: 112)
+
+                VStack(spacing: 6) {
+                    Text("Atualizando os dados")
+                        .font(.headline)
+                        .accessibilityIdentifier("opening-sync.title")
+
+                    Text("Sincronizando o histórico do modo Cuidador")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("opening-sync.subtitle")
+                }
+            }
+            .padding(24)
+            .frame(maxWidth: 300)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .accessibilityElement(children: .combine)
+        }
+        .onAppear {
+            withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) {
+                isRotating = true
+            }
+        }
     }
 }
 
