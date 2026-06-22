@@ -29,7 +29,7 @@ struct ContentView: View {
 
                     if store.sessionMode == .caregiver {
                         SyncStatusBanner(status: store.syncStatus) {
-                            Task { await store.syncFromCloud() }
+                            Task { await refreshAfterOpening(forceLoading: true) }
                         }
                         .accessibilityIdentifier("home.sync-status")
                     }
@@ -114,11 +114,11 @@ struct ContentView: View {
         }
     }
 
-    private func refreshAfterOpening() async {
+    private func refreshAfterOpening(forceLoading: Bool = false) async {
         guard !isOpeningSyncRunning else { return }
 
         isOpeningSyncRunning = true
-        let shouldShowLoading = store.sessionMode == .caregiver
+        let shouldShowLoading = forceLoading || store.sessionMode == .caregiver
         let start = Date()
 
         if shouldShowLoading {
@@ -355,13 +355,12 @@ private struct SyncStatusBanner: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("sync-status.message")
 
-                if case .unavailable = status {
-                    Button("Tentar novamente", action: retry)
-                        .font(.footnote.weight(.semibold))
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .accessibilityIdentifier("sync-status.retry-button")
-                }
+                Button(actionTitle, action: retry)
+                    .font(.footnote.weight(.semibold))
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(status == .syncing)
+                    .accessibilityIdentifier("sync-status.refresh-button")
             }
 
             Spacer(minLength: 0)
@@ -381,6 +380,14 @@ private struct SyncStatusBanner: View {
         case .unavailable:
             return "Sincronização indisponível"
         }
+    }
+
+    private var actionTitle: String {
+        if case .unavailable = status {
+            return "Tentar novamente"
+        }
+
+        return "Atualizar dados"
     }
 
     private var message: String {
