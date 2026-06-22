@@ -88,11 +88,28 @@ final class DoseStore: ObservableObject {
         syncStatus = .syncing
 
         do {
-            let uploadedCount = try await uploadLocalCaregiverEntries()
             let cloudEntries = try await CloudDoseSync.shared.fetchCaregiverEntries()
-            merge(cloudEntries)
+            let uploadedCount: Int
+            let finalCloudCount: Int
+
+            if cloudEntries.isEmpty {
+                uploadedCount = try await uploadLocalCaregiverEntries()
+
+                if uploadedCount > 0 {
+                    let refreshedCloudEntries = try await CloudDoseSync.shared.fetchCaregiverEntries()
+                    merge(refreshedCloudEntries)
+                    finalCloudCount = refreshedCloudEntries.count
+                } else {
+                    finalCloudCount = 0
+                }
+            } else {
+                uploadedCount = 0
+                merge(cloudEntries)
+                finalCloudCount = cloudEntries.count
+            }
+
             syncStatus = .ready(
-                "Enviadas \(uploadedCount) dose(s) deste iPhone. Encontradas \(cloudEntries.count) dose(s) no iCloud."
+                "Enviadas \(uploadedCount) dose(s) deste iPhone. Encontradas \(finalCloudCount) dose(s) no iCloud."
             )
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
