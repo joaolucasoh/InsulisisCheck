@@ -113,6 +113,17 @@ enum CloudErrorMessage {
         }
 
         if let ckError = error as? CKError {
+            if ckError.code == .permissionFailure {
+                return """
+                O iCloud recusou acesso ao histórico compartilhado.
+
+                Confira no CloudKit Dashboard em Production se o tipo DoseEntry existe no Public Database e se as Security Roles permitem que usuários iCloud criem, leiam, editem e apaguem DoseEntry. Depois faça Deploy Schema Changes para Production e tente sincronizar novamente.
+
+                Detalhes técnicos: \(ckError.localizedDescription)
+                Código CloudKit: \(ckError.code.rawValue)
+                """
+            }
+
             return """
             O iCloud recusou a operação.
 
@@ -387,7 +398,6 @@ final class CloudDoseSync {
     private func fetchEntries(database: CKDatabase, zoneID: CKRecordZone.ID?, predicate: NSPredicate) async throws -> [DoseEntry] {
         try await withCheckedThrowingContinuation { continuation in
             let query = CKQuery(recordType: doseRecordType, predicate: predicate)
-            query.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
 
             let operation = CKQueryOperation(query: query)
             operation.zoneID = zoneID
@@ -401,7 +411,7 @@ final class CloudDoseSync {
             operation.queryResultBlock = { result in
                 switch result {
                 case .success:
-                    continuation.resume(returning: records.compactMap(Self.entry(from:)))
+                    continuation.resume(returning: self.deduplicated(records.compactMap(Self.entry(from:))))
                 case .failure(let error):
                     continuation.resume(throwing: error)
                 }

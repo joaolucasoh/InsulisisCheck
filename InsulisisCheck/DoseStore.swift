@@ -88,13 +88,13 @@ final class DoseStore: ObservableObject {
         syncStatus = .syncing
 
         do {
+            try await uploadLocalCaregiverEntries()
             let cloudEntries = try await CloudDoseSync.shared.fetchCaregiverEntries()
             merge(cloudEntries)
-            try await uploadLocalCaregiverEntries()
             syncStatus = .ready
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
-            syncStatus = .unavailable(error.localizedDescription)
+            syncStatus = .unavailable(CloudErrorMessage.make(from: error))
         }
     }
 
@@ -174,7 +174,7 @@ final class DoseStore: ObservableObject {
             syncStatus = .ready
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
-            syncStatus = .unavailable(error.localizedDescription)
+            syncStatus = .unavailable(CloudErrorMessage.make(from: error))
         }
     }
 
@@ -191,7 +191,7 @@ final class DoseStore: ObservableObject {
             syncStatus = .ready
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
-            syncStatus = .unavailable(error.localizedDescription)
+            syncStatus = .unavailable(CloudErrorMessage.make(from: error))
         }
     }
 

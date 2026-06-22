@@ -24,6 +24,13 @@ struct ContentView: View {
                     header
                         .accessibilityIdentifier("home.header")
 
+                    if store.sessionMode == .caregiver {
+                        SyncStatusBanner(status: store.syncStatus) {
+                            Task { await store.syncFromCloud() }
+                        }
+                        .accessibilityIdentifier("home.sync-status")
+                    }
+
                     VStack(spacing: 14) {
                         ForEach(InsulinPeriod.allCases) { period in
                             PeriodStatusCard(
@@ -230,6 +237,95 @@ struct ContentView: View {
 
     private func isOverdue(_ period: InsulinPeriod) -> Bool {
         currentSchedule.isOverdue && currentSchedule.nextPeriod == period
+    }
+}
+
+private struct SyncStatusBanner: View {
+    let status: CloudSyncStatus
+    let retry: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: iconName)
+                .font(.headline)
+                .foregroundStyle(tint)
+                .frame(width: 24, height: 24)
+                .accessibilityIdentifier("sync-status.icon")
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.subheadline.bold())
+                    .accessibilityIdentifier("sync-status.title")
+
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("sync-status.message")
+
+                if case .unavailable = status {
+                    Button("Tentar novamente", action: retry)
+                        .font(.footnote.weight(.semibold))
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .accessibilityIdentifier("sync-status.retry-button")
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var title: String {
+        switch status {
+        case .idle:
+            return "Sincronização pronta para iniciar"
+        case .syncing:
+            return "Sincronizando dados reais"
+        case .ready:
+            return "Dados reais sincronizados"
+        case .unavailable:
+            return "Sincronização indisponível"
+        }
+    }
+
+    private var message: String {
+        switch status {
+        case .idle:
+            return "O modo Cuidador usa o iCloud para compartilhar o histórico entre os iPhones."
+        case .syncing:
+            return "Enviando apontamentos deste iPhone e buscando o histórico no iCloud."
+        case .ready:
+            return "Este iPhone está usando o histórico compartilhado do modo Cuidador."
+        case .unavailable(let message):
+            return message
+        }
+    }
+
+    private var iconName: String {
+        switch status {
+        case .idle:
+            return "icloud"
+        case .syncing:
+            return "icloud.and.arrow.up"
+        case .ready:
+            return "checkmark.icloud"
+        case .unavailable:
+            return "exclamationmark.icloud"
+        }
+    }
+
+    private var tint: Color {
+        switch status {
+        case .idle, .syncing:
+            return .blue
+        case .ready:
+            return .green
+        case .unavailable:
+            return .orange
+        }
     }
 }
 
