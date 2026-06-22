@@ -161,10 +161,7 @@ final class CloudDoseSync {
 
     func saveCaregiverEntry(_ entry: DoseEntry) async throws {
         let recordID = CKRecord.ID(recordName: caregiverRecordName(for: entry))
-        let record = CKRecord(recordType: doseRecordType, recordID: recordID)
-        fill(record, with: entry)
-
-        _ = try await save(record, in: container.publicCloudDatabase)
+        try await saveDoseEntry(entry, recordID: recordID, in: container.publicCloudDatabase)
     }
 
     func deleteCaregiverEntry(_ entry: DoseEntry) async throws {
@@ -197,10 +194,7 @@ final class CloudDoseSync {
 
         let target = try await writableTarget()
         let recordID = CKRecord.ID(recordName: entry.cloudRecordName, zoneID: target.zoneID)
-        let record = CKRecord(recordType: doseRecordType, recordID: recordID)
-        fill(record, with: entry)
-
-        _ = try await save(record, in: target.database)
+        try await saveDoseEntry(entry, recordID: recordID, in: target.database)
     }
 
     func delete(_ entry: DoseEntry) async throws {
@@ -446,6 +440,19 @@ final class CloudDoseSync {
                 continuation.resume(returning: record ?? CKRecord(recordType: self.doseRecordType))
             }
         }
+    }
+
+    private func saveDoseEntry(_ entry: DoseEntry, recordID: CKRecord.ID, in database: CKDatabase) async throws {
+        let record: CKRecord
+
+        do {
+            record = try await fetchRecord(recordID, in: database)
+        } catch let error as CKError where error.code == .unknownItem {
+            record = CKRecord(recordType: doseRecordType, recordID: recordID)
+        }
+
+        fill(record, with: entry)
+        _ = try await save(record, in: database)
     }
 
     private func modify(recordsToSave: [CKRecord], in database: CKDatabase) async throws {
