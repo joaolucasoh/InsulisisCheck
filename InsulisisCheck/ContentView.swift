@@ -308,6 +308,7 @@ private struct OpeningSyncOverlay: View {
             }
             .padding(.horizontal, 22)
             .padding(.vertical, 18)
+            .offset(y: -64)
             .accessibilityElement(children: .combine)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
