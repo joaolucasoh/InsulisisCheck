@@ -298,9 +298,23 @@ private enum WidgetTextScale {
 private enum WidgetSharedStorage {
     static let appGroupID = "group.com.raven.InsulisisCheck"
     static let doseEntriesKey = "insulisis.doseEntries"
+    static let caregiverDoseEntriesKey = "insulisis.doseEntries.caregiver"
+    static let testDoseEntriesKey = "insulisis.doseEntries.testOnly"
+    static let sessionModeKey = "insulisis.sessionMode"
 
     static var defaults: UserDefaults {
         UserDefaults(suiteName: appGroupID) ?? .standard
+    }
+
+    static var activeDoseEntriesKey: String {
+        switch defaults.string(forKey: sessionModeKey) {
+        case "testOnly":
+            testDoseEntriesKey
+        case "caregiver":
+            caregiverDoseEntriesKey
+        default:
+            defaults.data(forKey: caregiverDoseEntriesKey) == nil ? doseEntriesKey : caregiverDoseEntriesKey
+        }
     }
 }
 
@@ -342,7 +356,7 @@ private struct DoseEntrySnapshot: Codable {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
 
-        guard let data = WidgetSharedStorage.defaults.data(forKey: WidgetSharedStorage.doseEntriesKey),
+        guard let data = WidgetSharedStorage.defaults.data(forKey: WidgetSharedStorage.activeDoseEntriesKey),
               let entries = try? decoder.decode([DoseEntrySnapshot].self, from: data) else {
             return []
         }
