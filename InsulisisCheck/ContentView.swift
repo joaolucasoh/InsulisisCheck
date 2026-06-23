@@ -28,7 +28,7 @@ struct ContentView: View {
                         .accessibilityIdentifier("home.header")
 
                     if store.sessionMode == .caregiver {
-                        SyncStatusBanner(status: store.syncStatus) {
+                        SyncStatusBanner(status: store.syncStatus, lastSyncDate: store.lastSyncDate) {
                             Task { await refreshAfterOpening(forceLoading: true) }
                         }
                         .accessibilityIdentifier("home.sync-status")
@@ -308,9 +308,9 @@ private struct OpeningSyncOverlay: View {
             }
             .padding(.horizontal, 22)
             .padding(.vertical, 18)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .accessibilityElement(children: .combine)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .onAppear {
             withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) {
                 isRotating = true
@@ -321,43 +321,41 @@ private struct OpeningSyncOverlay: View {
 
 private struct SyncStatusBanner: View {
     let status: CloudSyncStatus
+    let lastSyncDate: Date?
     let retry: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 10) {
             Image(systemName: iconName)
                 .font(.headline)
                 .foregroundStyle(tint)
                 .frame(width: 24, height: 24)
                 .accessibilityIdentifier("sync-status.icon")
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.subheadline.bold())
-                    .accessibilityIdentifier("sync-status.title")
+            Text(title)
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("sync-status.title")
 
-                Button(actionTitle, action: retry)
-                    .font(.footnote.weight(.semibold))
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .disabled(status == .syncing)
-                    .accessibilityIdentifier("sync-status.refresh-button")
-            }
+            Spacer(minLength: 8)
 
-            Spacer(minLength: 0)
+            Button(actionTitle, action: retry)
+                .font(.footnote.weight(.semibold))
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(status == .syncing)
+                .accessibilityIdentifier("sync-status.refresh-button")
         }
-        .padding(14)
-        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(.horizontal, 2)
+        .accessibilityElement(children: .combine)
     }
 
     private var title: String {
         switch status {
-        case .idle:
-            return "Dados no iCloud"
         case .syncing:
             return "Atualizando dados..."
-        case .ready(_):
-            return "Dados sincronizados"
+        case .idle, .ready(_):
+            return lastSyncText
         case .unavailable:
             return "Não foi possível sincronizar"
         }
@@ -373,12 +371,10 @@ private struct SyncStatusBanner: View {
 
     private var iconName: String {
         switch status {
-        case .idle:
-            return "icloud"
+        case .idle, .ready(_):
+            return "checkmark.icloud"
         case .syncing:
             return "icloud.and.arrow.up"
-        case .ready(_):
-            return "checkmark.icloud"
         case .unavailable:
             return "exclamationmark.icloud"
         }
@@ -386,13 +382,21 @@ private struct SyncStatusBanner: View {
 
     private var tint: Color {
         switch status {
-        case .idle, .syncing:
+        case .syncing:
             return .blue
-        case .ready(_):
+        case .idle, .ready(_):
             return .green
         case .unavailable:
             return .orange
         }
+    }
+
+    private var lastSyncText: String {
+        guard let lastSyncDate else {
+            return "Última atualização pendente"
+        }
+
+        return "Última atualização \(lastSyncDate.formatted(date: .omitted, time: .shortened))"
     }
 }
 

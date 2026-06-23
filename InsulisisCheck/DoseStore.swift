@@ -10,6 +10,7 @@ final class DoseStore: ObservableObject {
     @Published private(set) var entries: [DoseEntry] = []
     @Published private(set) var syncStatus: CloudSyncStatus = .idle
     @Published private(set) var sessionMode: AppSessionMode?
+    @Published private(set) var lastSyncDate: Date?
 
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
@@ -19,6 +20,7 @@ final class DoseStore: ObservableObject {
         decoder.dateDecodingStrategy = .iso8601
         sessionMode = SharedStorage.defaults.string(forKey: SharedStorage.sessionModeKey)
             .flatMap(AppSessionMode.init(rawValue:))
+        lastSyncDate = SharedStorage.defaults.object(forKey: SharedStorage.lastSyncDateKey) as? Date
         load()
     }
 
@@ -99,6 +101,7 @@ final class DoseStore: ObservableObject {
                 merge(cloudEntries)
             }
 
+            markSyncCompleted()
             syncStatus = .ready("Dados sincronizados.")
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
@@ -179,6 +182,7 @@ final class DoseStore: ObservableObject {
 
         do {
             try await CloudDoseSync.shared.saveCaregiverEntry(entry)
+            markSyncCompleted()
             syncStatus = .ready("Dados sincronizados.")
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
@@ -196,6 +200,7 @@ final class DoseStore: ObservableObject {
 
         do {
             try await CloudDoseSync.shared.deleteCaregiverEntry(entry)
+            markSyncCompleted()
             syncStatus = .ready("Dados sincronizados.")
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
@@ -225,6 +230,12 @@ final class DoseStore: ObservableObject {
         }
 
         return uploadedCount
+    }
+
+    private func markSyncCompleted() {
+        let date = Date()
+        lastSyncDate = date
+        SharedStorage.defaults.set(date, forKey: SharedStorage.lastSyncDateKey)
     }
 
     private func migrateLegacyEntriesIfNeeded() {
