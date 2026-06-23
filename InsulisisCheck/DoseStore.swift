@@ -89,28 +89,17 @@ final class DoseStore: ObservableObject {
 
         do {
             let cloudEntries = try await CloudDoseSync.shared.fetchCaregiverEntries()
-            let uploadedCount: Int
-            let finalCloudCount: Int
 
             if cloudEntries.isEmpty {
-                uploadedCount = try await uploadLocalCaregiverEntries()
-
-                if uploadedCount > 0 {
+                if try await uploadLocalCaregiverEntries() > 0 {
                     let refreshedCloudEntries = try await CloudDoseSync.shared.fetchCaregiverEntries()
                     merge(refreshedCloudEntries)
-                    finalCloudCount = refreshedCloudEntries.count
-                } else {
-                    finalCloudCount = 0
                 }
             } else {
-                uploadedCount = 0
                 merge(cloudEntries)
-                finalCloudCount = cloudEntries.count
             }
 
-            syncStatus = .ready(
-                "Enviadas \(uploadedCount) dose(s) deste iPhone. Encontradas \(finalCloudCount) dose(s) no iCloud."
-            )
+            syncStatus = .ready("Dados sincronizados.")
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
             syncStatus = .unavailable(CloudErrorMessage.make(from: error))
@@ -190,7 +179,7 @@ final class DoseStore: ObservableObject {
 
         do {
             try await CloudDoseSync.shared.saveCaregiverEntry(entry)
-            syncStatus = .ready("Dose salva no iCloud.")
+            syncStatus = .ready("Dados sincronizados.")
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
             syncStatus = .unavailable(CloudErrorMessage.make(from: error))
@@ -207,7 +196,7 @@ final class DoseStore: ObservableObject {
 
         do {
             try await CloudDoseSync.shared.deleteCaregiverEntry(entry)
-            syncStatus = .ready("Dose removida do iCloud.")
+            syncStatus = .ready("Dados sincronizados.")
             await InsulinNotificationManager.shared.refresh(entries: entries)
         } catch {
             syncStatus = .unavailable(CloudErrorMessage.make(from: error))

@@ -284,43 +284,30 @@ private struct OpeningSyncOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.28)
+            Rectangle()
+                .fill(.ultraThinMaterial)
                 .ignoresSafeArea()
 
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 ZStack {
-                    Circle()
-                        .stroke(Color.accentColor.opacity(0.18), lineWidth: 8)
-                        .frame(width: 86, height: 86)
-
                     Image(systemName: "drop.fill")
-                        .font(.title)
-                        .foregroundStyle(Color.accentColor)
+                        .font(.title2)
+                        .foregroundStyle(Color.accentColor.opacity(0.25))
 
                     Image(systemName: "syringe")
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 42, height: 42)
-                        .background(Color.accentColor, in: Circle())
-                        .offset(y: -43)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .offset(y: -22)
                         .rotationEffect(.degrees(isRotating ? 360 : 0))
                 }
-                .frame(width: 112, height: 112)
+                .frame(width: 64, height: 64)
 
-                VStack(spacing: 6) {
-                    Text("Atualizando os dados")
-                        .font(.headline)
-                        .accessibilityIdentifier("opening-sync.title")
-
-                    Text("Sincronizando o histórico do modo Cuidador")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .accessibilityIdentifier("opening-sync.subtitle")
-                }
+                Text("Atualizando dados")
+                    .font(.headline)
+                    .accessibilityIdentifier("opening-sync.title")
             }
-            .padding(24)
-            .frame(maxWidth: 300)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 18)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .accessibilityElement(children: .combine)
         }
@@ -349,12 +336,6 @@ private struct SyncStatusBanner: View {
                     .font(.subheadline.bold())
                     .accessibilityIdentifier("sync-status.title")
 
-                Text(message)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("sync-status.message")
-
                 Button(actionTitle, action: retry)
                     .font(.footnote.weight(.semibold))
                     .buttonStyle(.bordered)
@@ -372,13 +353,13 @@ private struct SyncStatusBanner: View {
     private var title: String {
         switch status {
         case .idle:
-            return "Sincronização pronta para iniciar"
+            return "Dados no iCloud"
         case .syncing:
-            return "Sincronizando dados reais"
+            return "Atualizando dados..."
         case .ready(_):
-            return "Dados reais sincronizados"
+            return "Dados sincronizados"
         case .unavailable:
-            return "Sincronização indisponível"
+            return "Não foi possível sincronizar"
         }
     }
 
@@ -388,19 +369,6 @@ private struct SyncStatusBanner: View {
         }
 
         return "Atualizar dados"
-    }
-
-    private var message: String {
-        switch status {
-        case .idle:
-            return "O modo Cuidador usa o iCloud para compartilhar o histórico entre os iPhones."
-        case .syncing:
-            return "Enviando apontamentos deste iPhone e buscando o histórico no iCloud."
-        case .ready(let message):
-            return message
-        case .unavailable(let message):
-            return message
-        }
     }
 
     private var iconName: String {
