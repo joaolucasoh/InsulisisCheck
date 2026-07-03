@@ -24,14 +24,18 @@ struct ContentView: View {
             NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
+                    Text("Insulísis Check 💉")
+                        .font(.largeTitle.bold())
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("home.title.text")
+
                     header
-                        .accessibilityIdentifier("home.header")
 
                     if store.sessionMode == .caregiver {
                         SyncStatusBanner(status: store.syncStatus, lastSyncDate: store.lastSyncDate) {
                             Task { await refreshAfterOpening(forceLoading: true) }
                         }
-                        .accessibilityIdentifier("home.sync-status")
+                        .accessibilityIdentifier("home.sync-status.container")
                     }
 
                     VStack(spacing: 14) {
@@ -47,16 +51,18 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .accessibilityIdentifier("home.period-cards")
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("home.period-cards.container")
 
                     todayEntries
-                        .accessibilityIdentifier("home.today-entries")
+                        .accessibilityIdentifier("home.today-entries.container")
                 }
                 .padding(20)
             }
             .accessibilityIdentifier("home.scroll-view")
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Insulísis Check 💉")
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("home.navigation")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -78,7 +84,7 @@ struct ContentView: View {
                     } label: {
                         Label("Fazer apontamento manual", systemImage: "plus.circle.fill")
                     }
-                    .accessibilityIdentifier("home.manual-entry.button")
+                    .accessibilityIdentifier("home.manual-entry.morning.button")
                 }
             }
             .sheet(item: $manualPeriod) { period in
@@ -106,7 +112,7 @@ struct ContentView: View {
                 if isOpeningSyncVisible {
                     OpeningSyncOverlay()
                         .transition(.opacity)
-                        .accessibilityIdentifier("home.opening-sync-overlay")
+                        .accessibilityIdentifier("home.opening-sync-overlay.container")
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: isOpeningSyncVisible)
@@ -147,13 +153,19 @@ struct ContentView: View {
                 .scaledToFill()
                 .frame(width: 96, height: 96)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Foto da Isis")
                 .accessibilityIdentifier("home.header.image")
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(todayTitle.capitalized)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("home.header.date-label")
+                HStack {
+                    Text(todayTitle.capitalized)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("home.header.date.text")
+                }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("home.header.date.container")
 
                 HStack(alignment: .top, spacing: 7) {
                     Image(systemName: statusIconName)
@@ -164,47 +176,62 @@ struct ContentView: View {
                     Text(overallStatusTitle)
                         .font(.headline)
                         .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("home.header.status-title")
+                        .accessibilityIdentifier("home.header.status.\(currentSchedule.nextPeriod.rawValue).text")
                 }
                 .foregroundStyle(statusColor)
-                .accessibilityIdentifier("home.header.status-row")
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("home.header.status.\(currentSchedule.nextPeriod.rawValue).container")
 
-                Label(nextDoseTitle, systemImage: "calendar.badge.clock")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("home.header.next-dose-label")
+                HStack {
+                    Label(nextDoseTitle, systemImage: "calendar.badge.clock")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("home.header.next-dose.\(currentSchedule.nextPeriod.rawValue).text")
+                }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("home.header.next-dose.\(currentSchedule.nextPeriod.rawValue).container")
             }
             .padding(.top, 1)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("home.header.info.container")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
     }
 
     private var todayEntries: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Hoje")
                 .font(.title2.bold())
-                .accessibilityIdentifier("today.title")
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("today.title.text")
 
             let entries = store.entries(on: Date())
 
             if entries.isEmpty {
-                Text("Nenhum apontamento ainda.")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .accessibilityIdentifier("today.empty-label")
+                HStack {
+                    Text("Nenhum apontamento ainda.")
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("today.empty.text")
+
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(.background, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("today.empty.container")
             } else {
                 ForEach(entries) { entry in
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(entry.period.title)
                                 .font(.headline)
-                                .accessibilityIdentifier("today.entry.\(entry.id.uuidString).period-label")
+                                .accessibilityIdentifier("today.entry.\(entry.id.uuidString).period.text")
                             Text("Aplicada por \(entry.caregiver)")
                                 .foregroundStyle(.secondary)
-                                .accessibilityIdentifier("today.entry.\(entry.id.uuidString).caregiver-label")
+                                .accessibilityIdentifier("today.entry.\(entry.id.uuidString).caregiver.text")
                         }
 
                         Spacer()
@@ -212,15 +239,15 @@ struct ContentView: View {
                         VStack(alignment: .trailing, spacing: 4) {
                             Text(entry.date.insulisisTimeText)
                                 .font(.headline)
-                                .accessibilityIdentifier("today.entry.\(entry.id.uuidString).time-label")
+                                .accessibilityIdentifier("today.entry.\(entry.id.uuidString).time.text")
                             Text(entry.unitsText)
                                 .foregroundStyle(.secondary)
-                                .accessibilityIdentifier("today.entry.\(entry.id.uuidString).units-label")
+                                .accessibilityIdentifier("today.entry.\(entry.id.uuidString).units.text")
                         }
                     }
                     .padding(16)
                     .background(.background, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .accessibilityIdentifier("today.entry.\(entry.id.uuidString).row")
+                    .accessibilityIdentifier("today.entry.\(entry.id.uuidString).row.container")
                 }
             }
         }
@@ -304,12 +331,11 @@ private struct OpeningSyncOverlay: View {
 
                 Text("Atualizando dados")
                     .font(.headline)
-                    .accessibilityIdentifier("opening-sync.title")
+                    .accessibilityIdentifier("opening-sync.title.text")
             }
             .padding(.horizontal, 22)
             .padding(.vertical, 18)
             .offset(y: -64)
-            .accessibilityElement(children: .combine)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .onAppear {
@@ -336,7 +362,7 @@ private struct SyncStatusBanner: View {
             Text(title)
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(.secondary)
-                .accessibilityIdentifier("sync-status.title")
+                .accessibilityIdentifier("sync-status.title.text")
 
             Spacer(minLength: 8)
 
@@ -348,7 +374,6 @@ private struct SyncStatusBanner: View {
                 .accessibilityIdentifier("sync-status.refresh-button")
         }
         .padding(.horizontal, 2)
-        .accessibilityElement(children: .combine)
     }
 
     private var title: String {
@@ -397,7 +422,7 @@ private struct SyncStatusBanner: View {
             return "Última atualização pendente"
         }
 
-        return "Última atualização \(lastSyncDate.formatted(date: .omitted, time: .shortened))"
+        return "Última atualização \(lastSyncDate.insulisisTimeText)"
     }
 }
 
@@ -414,13 +439,14 @@ private struct SessionModeSelectionView: View {
 
                 Text("Insulísis Check")
                     .font(.largeTitle.bold())
-                    .accessibilityIdentifier("session-selection.title")
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("session-selection.title.text")
 
                 Text("Escolha como este iPhone vai usar os apontamentos.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("session-selection.subtitle")
+                    .accessibilityIdentifier("session-selection.subtitle.text")
 
                 VStack(spacing: 12) {
                     Button {
@@ -543,13 +569,14 @@ private struct CloudSharingView: View {
 
                         Text("Convite pronto")
                             .font(.title2.bold())
-                            .accessibilityIdentifier("sharing.ready.title")
+                            .accessibilityAddTraits(.isHeader)
+                            .accessibilityIdentifier("sharing.ready.title.text")
 
                         Text("Envie este convite para a Sheila. Quando ela abrir o link e aceitar pelo iCloud, os apontamentos ficam sincronizados nos dois iPhones.")
                             .font(.body)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
-                            .accessibilityIdentifier("sharing.ready.description")
+                            .accessibilityIdentifier("sharing.ready.description.text")
 
                         Button {
                             isShareSheetPresented = true
@@ -565,7 +592,7 @@ private struct CloudSharingView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                             .truncationMode(.middle)
-                            .accessibilityIdentifier("sharing.invite-url.label")
+                            .accessibilityIdentifier("sharing.invite-url.text")
 
                         if let inviteText {
                             Text(inviteText)
@@ -575,11 +602,11 @@ private struct CloudSharingView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(10)
                                 .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                                .accessibilityIdentifier("sharing.invite-text.label")
+                                .accessibilityIdentifier("sharing.invite-message.text")
                         }
                     }
                     .padding(24)
-                    .accessibilityIdentifier("sharing.ready.container")
+                    .accessibilityIdentifier("sharing.ready-state.container")
                     .sheet(isPresented: $isShareSheetPresented) {
                         ShareSheet(items: [inviteText ?? shareURL.absoluteString])
                     }
@@ -593,13 +620,14 @@ private struct CloudSharingView: View {
                     Text("Não deu para preparar o compartilhamento.")
                         .font(.headline)
                         .multilineTextAlignment(.center)
-                        .accessibilityIdentifier("sharing.error.title")
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("sharing.error.title.text")
 
                     Text(errorMessage)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                        .accessibilityIdentifier("sharing.error.message")
+                        .accessibilityIdentifier("sharing.error.message.text")
 
                     diagnosticLog
 
@@ -610,7 +638,7 @@ private struct CloudSharingView: View {
                     .accessibilityIdentifier("sharing.retry.button")
                 }
                 .padding(24)
-                .accessibilityIdentifier("sharing.error.container")
+                .accessibilityIdentifier("sharing.error-state.container")
             } else {
                 VStack(spacing: 14) {
                     ProgressView()
@@ -618,17 +646,18 @@ private struct CloudSharingView: View {
                     Text("Preparando compartilhamento pelo iCloud...")
                         .font(.headline)
                         .multilineTextAlignment(.center)
-                        .accessibilityIdentifier("sharing.loading.title")
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("sharing.loading.title.text")
                     Text("Isso pode levar alguns segundos na primeira vez.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                        .accessibilityIdentifier("sharing.loading.subtitle")
+                        .accessibilityIdentifier("sharing.loading.subtitle.text")
 
                     diagnosticLog
                 }
                 .padding(24)
-                .accessibilityIdentifier("sharing.loading.container")
+                .accessibilityIdentifier("sharing.loading-state.container")
                 .task {
                     await prepareShare()
                 }
@@ -650,7 +679,7 @@ private struct CloudSharingView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(10)
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .accessibilityIdentifier("sharing.diagnostic-log")
+                    .accessibilityIdentifier("sharing.diagnostic-log.text")
             }
         }
     }
@@ -716,14 +745,14 @@ private struct InviteAcceptanceView: View {
                 Text("Cole aqui o convite recebido. Pode ser o texto inteiro da mensagem.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("invite-accept.description")
+                    .accessibilityIdentifier("invite-accept.description.text")
 
                 TextEditor(text: $inviteText)
                     .font(.body)
                     .frame(minHeight: 150)
                     .padding(8)
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .accessibilityIdentifier("invite-accept.text-editor")
+                    .accessibilityIdentifier("invite-accept.invite-text.text-view")
 
                 HStack {
                     Button {
@@ -755,7 +784,7 @@ private struct InviteAcceptanceView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("invite-accept.status")
+                        .accessibilityIdentifier("invite-accept.status.text")
                 }
 
                 if !diagnosticText.isEmpty {
@@ -766,7 +795,7 @@ private struct InviteAcceptanceView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(10)
                         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .accessibilityIdentifier("invite-accept.diagnostic-log")
+                        .accessibilityIdentifier("invite-accept.diagnostic-log.text")
                 }
 
                 Spacer()
@@ -840,12 +869,13 @@ private struct PeriodStatusCard: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(period.title)
                         .font(.title3.bold())
-                        .accessibilityIdentifier("dose-card.\(period.rawValue).title")
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("dose-card.\(period.rawValue).title.text")
 
                     Text(statusText)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                        .accessibilityIdentifier("dose-card.\(period.rawValue).status-label")
+                        .accessibilityIdentifier("dose-card.\(period.rawValue).status.text")
                 }
 
                 Spacer()
@@ -856,22 +886,22 @@ private struct PeriodStatusCard: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(statusColor.opacity(0.12), in: Capsule())
-                    .accessibilityIdentifier("dose-card.\(period.rawValue).deadline-label")
+                    .accessibilityIdentifier("dose-card.\(period.rawValue).deadline.text")
             }
-            .accessibilityIdentifier("dose-card.\(period.rawValue).header-row")
+            .accessibilityIdentifier("dose-card.\(period.rawValue).header-row.container")
 
             if let entry {
                 HStack(spacing: 12) {
                     Label(entry.date.insulisisTimeText, systemImage: "clock")
-                        .accessibilityIdentifier("dose-card.\(period.rawValue).entry-time-label")
+                        .accessibilityIdentifier("dose-card.\(period.rawValue).entry-time.text")
                     Label(entry.caregiver, systemImage: "person.fill")
-                        .accessibilityIdentifier("dose-card.\(period.rawValue).entry-caregiver-label")
+                        .accessibilityIdentifier("dose-card.\(period.rawValue).entry-caregiver.text")
                     Label(entry.unitsText, systemImage: "drop.fill")
-                        .accessibilityIdentifier("dose-card.\(period.rawValue).entry-units-label")
+                        .accessibilityIdentifier("dose-card.\(period.rawValue).entry-units.text")
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .accessibilityIdentifier("dose-card.\(period.rawValue).entry-details-row")
+                .accessibilityIdentifier("dose-card.\(period.rawValue).entry-details-row.container")
             }
 
             Button(action: action) {
@@ -880,10 +910,13 @@ private struct PeriodStatusCard: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(entry == nil ? .blue : .green)
-            .accessibilityIdentifier("dose-card.\(period.rawValue).action-button")
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(actionAccessibilityLabel)
+            .accessibilityIdentifier(actionAccessibilityIdentifier)
         }
         .padding(16)
         .background(.background, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("dose-card.\(period.rawValue).container")
     }
 
@@ -912,6 +945,14 @@ private struct PeriodStatusCard: View {
         }
         return entry == nil ? "Aguardando" : "OK"
     }
+
+    private var actionAccessibilityLabel: String {
+        entry == nil ? "Fazer apontamento manual" : "Editar apontamento"
+    }
+
+    private var actionAccessibilityIdentifier: String {
+        "dose-card.\(period.rawValue).\(entry == nil ? "manual-entry" : "edit-entry").button"
+    }
 }
 
 private struct ManualEntryView: View {
@@ -938,43 +979,95 @@ private struct ManualEntryView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Apontamento") {
-                    Picker("Período", selection: $selectedPeriod) {
-                        ForEach(InsulinPeriod.allCases) { period in
-                            Text(period.title).tag(period)
-                                .accessibilityIdentifier("manual.period.option.\(period.rawValue)")
+                Section {
+                    VStack(spacing: 0) {
+                        Picker("Período", selection: $selectedPeriod) {
+                            ForEach(InsulinPeriod.allCases) { period in
+                                Text(period.title).tag(period)
+                                    .accessibilityIdentifier("manual.period.option.\(period.rawValue).text")
+                            }
                         }
+                        .accessibilityIdentifier("manual.period.picker")
                     }
-                    .accessibilityIdentifier("manual.period.picker")
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("manual.period.row.container")
 
-                    Picker("Quem aplicou", selection: $caregiver) {
-                        ForEach(Caregiver.manualEntryOptions) { caregiver in
-                            Text(caregiver.displayName).tag(caregiver)
-                                .accessibilityIdentifier("manual.caregiver.option.\(caregiver.rawValue)")
+                    VStack(spacing: 0) {
+                        Picker("Quem aplicou", selection: $caregiver) {
+                            ForEach(Caregiver.manualEntryOptions) { caregiver in
+                                Text(caregiver.displayName).tag(caregiver)
+                                    .accessibilityIdentifier("manual.caregiver.option.\(caregiver.rawValue).text")
+                            }
                         }
+                        .accessibilityIdentifier("manual.caregiver.picker")
                     }
-                    .accessibilityIdentifier("manual.caregiver.picker")
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("manual.caregiver.row.container")
 
-                    Stepper(value: $units, in: 0...100, step: 0.5) {
-                        HStack {
-                            Text("Unidades")
-                                .accessibilityIdentifier("manual.units.title-label")
-                            Spacer()
-                            Text(units.formatted(.number.precision(.fractionLength(0...1))))
-                                .foregroundStyle(.secondary)
-                                .accessibilityIdentifier("manual.units.value-label")
+                    HStack {
+                        Text("Unidades")
+                            .accessibilityIdentifier("manual.units.title.text")
+
+                        Spacer()
+
+                        Text(units.formatted(.number.precision(.fractionLength(0...1))))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .accessibilityIdentifier("manual.units.value.text")
+
+                        Button {
+                            units = max(0, units - 0.5)
+                        } label: {
+                            Image(systemName: "minus")
                         }
-                    }
-                    .accessibilityIdentifier("manual.units.stepper")
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .accessibilityLabel("Diminuir unidades")
+                        .accessibilityIdentifier("manual.units.decrement.button")
 
-                    DatePicker(
-                        "Horário",
-                        selection: $doseDate,
-                        displayedComponents: [.date, .hourAndMinute]
-                    )
-                    .accessibilityIdentifier("manual.date-picker")
+                        Button {
+                            units = min(100, units + 0.5)
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .accessibilityLabel("Aumentar unidades")
+                        .accessibilityIdentifier("manual.units.increment.button")
+                    }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("manual.units.row.container")
+
+                    HStack {
+                        Text("Horário")
+                            .accessibilityIdentifier("manual.schedule.title.text")
+
+                        Spacer()
+
+                        DatePicker(
+                            "Data",
+                            selection: $doseDate,
+                            displayedComponents: .date
+                        )
+                        .labelsHidden()
+                        .accessibilityLabel("Data")
+                        .accessibilityIdentifier("manual.date.picker")
+
+                        DatePicker(
+                            "Hora",
+                            selection: $doseDate,
+                            displayedComponents: .hourAndMinute
+                        )
+                        .labelsHidden()
+                        .accessibilityLabel("Hora")
+                        .accessibilityIdentifier("manual.time.picker")
+                    }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("manual.schedule.row.container")
+                } header: {
+                    Text("Apontamento")
+                        .accessibilityIdentifier("manual.entry.section-title.text")
                 }
-                .accessibilityIdentifier("manual.entry.section")
 
                 if store.entry(for: period) != nil {
                     Section {
@@ -986,14 +1079,21 @@ private struct ManualEntryView: View {
                         }
                         .accessibilityIdentifier("manual.mark-pending.button")
                     }
-                    .accessibilityIdentifier("manual.pending.section")
+                    .accessibilityIdentifier("manual.pending.section.container")
                 }
             }
             .accessibilityIdentifier("manual.form")
-            .navigationTitle("Registrar dose")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("manual.navigation")
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Registrar dose")
+                        .font(.headline)
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("manual.title.text")
+                }
+
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancelar") {
                         dismiss()

@@ -9,19 +9,22 @@ struct DoseEntry: Codable, Identifiable, Hashable {
     let period: InsulinPeriod
     let caregiver: String
     let units: Double
+    let sourceDeviceID: String?
 
     init(
         id: UUID = UUID(),
         date: Date = Date(),
         period: InsulinPeriod,
         caregiver: String,
-        units: Double
+        units: Double,
+        sourceDeviceID: String? = nil
     ) {
         self.id = id
         self.date = date
         self.period = period
         self.caregiver = caregiver
         self.units = units
+        self.sourceDeviceID = sourceDeviceID
     }
 
     var cloudRecordName: String {

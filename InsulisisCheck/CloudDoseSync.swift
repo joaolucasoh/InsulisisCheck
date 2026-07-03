@@ -147,6 +147,7 @@ final class CloudDoseSync {
     private let familyRecordType = "InsulisisFamily"
     private let caregiverSessionID = "isis-caregiver"
     private let caregiverIndexRecordName = "isis-caregiver-index"
+    private let caregiverSubscriptionID = "insulisis-caregiver-dose-changes"
     private let sharedZoneNameKey = "insulisis.sharedZoneName"
     private let sharedZoneOwnerKey = "insulisis.sharedZoneOwner"
 
@@ -161,6 +162,19 @@ final class CloudDoseSync {
         let recordIDs = recordNames.map { CKRecord.ID(recordName: $0) }
         let records = try await fetchRecords(recordIDs, in: container.publicCloudDatabase)
         return deduplicated(records.compactMap(Self.entry(from:)))
+    }
+
+    func ensureCaregiverSubscription() async throws {
+        do {
+            _ = try await fetchSubscription(caregiverSubscriptionID, in: container.publicCloudDatabase)
+            return
+        } catch let error as CKError where error.code == .unknownItem {
+            let subscription = CKDatabaseSubscription(subscriptionID: caregiverSubscriptionID)
+            let notificationInfo = CKSubscription.NotificationInfo()
+            notificationInfo.shouldSendContentAvailable = true
+            subscription.notificationInfo = notificationInfo
+            _ = try await save(subscription, in: container.publicCloudDatabase)
+        }
     }
 
     func saveCaregiverEntry(_ entry: DoseEntry) async throws {
@@ -448,6 +462,42 @@ final class CloudDoseSync {
         }
     }
 
+    private func save(_ subscription: CKSubscription, in database: CKDatabase) async throws -> CKSubscription {
+        try await withCheckedThrowingContinuation { continuation in
+            database.save(subscription) { subscription, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let subscription else {
+                    continuation.resume(throwing: CKError(.unknownItem))
+                    return
+                }
+
+                continuation.resume(returning: subscription)
+            }
+        }
+    }
+
+    private func fetchSubscription(_ subscriptionID: String, in database: CKDatabase) async throws -> CKSubscription {
+        try await withCheckedThrowingContinuation { continuation in
+            database.fetch(withSubscriptionID: subscriptionID) { subscription, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let subscription else {
+                    continuation.resume(throwing: CKError(.unknownItem))
+                    return
+                }
+
+                continuation.resume(returning: subscription)
+            }
+        }
+    }
+
     private func saveDoseEntry(_ entry: DoseEntry, recordID: CKRecord.ID, in database: CKDatabase) async throws {
         let record: CKRecord
 
@@ -587,6 +637,9 @@ final class CloudDoseSync {
         record["period"] = entry.period.rawValue as CKRecordValue
         record["caregiver"] = entry.caregiver as CKRecordValue
         record["units"] = entry.units as CKRecordValue
+        if let sourceDeviceID = entry.sourceDeviceID {
+            record["sourceDeviceID"] = sourceDeviceID as CKRecordValue
+        }
     }
 
     private func caregiverRecordName(for entry: DoseEntry) -> String {
@@ -607,7 +660,8 @@ final class CloudDoseSync {
             date: date,
             period: period,
             caregiver: caregiver,
-            units: units
+            units: units,
+            sourceDeviceID: record["sourceDeviceID"] as? String
         )
     }
 

@@ -27,18 +27,20 @@ extension Date {
             .dateTime
                 .locale(Locale(identifier: "pt_BR"))
                 .weekday(.abbreviated)
-                .hour()
-                .minute()
-        )
+        ) + ", \(timeText)"
     }
 
     var insulisisTimeText: String {
-        formatted(
-            .dateTime
-                .locale(Locale(identifier: "pt_BR"))
-                .hour()
-                .minute()
-        )
+        Self.insulisisTimeFormatter.string(from: self)
+    }
+
+    private static var insulisisTimeFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "h:mm a"
+        formatter.amSymbol = "AM"
+        formatter.pmSymbol = "PM"
+        return formatter
     }
 
     var insulisisDelayText: String {

@@ -5,7 +5,7 @@ struct InsulisisStatusWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "InsulisisStatusWidget", provider: InsulisisStatusProvider()) { entry in
             InsulisisStatusWidgetView(entry: entry)
-                .accessibilityIdentifier("widget.status.root")
+                .accessibilityIdentifier("widget.status.root.container")
         }
         .configurationDisplayName("Insulísis Check")
         .description("Mostra se a dose da Isis está atrasada ou aguardando o próximo horário.")
@@ -126,7 +126,7 @@ private struct InsulisisStatusWidgetView: View {
             mediumWidget
         case .accessoryInline:
             Text("\(Image(systemName: entry.status.symbolName)) \(entry.status.title)")
-                .accessibilityIdentifier("widget.status.accessory-inline.label")
+                .accessibilityIdentifier("widget.status.accessory-inline.title.text")
         case .accessoryCircular:
             circularAccessory
         case .accessoryRectangular:
@@ -177,13 +177,14 @@ private struct InsulisisStatusWidgetView: View {
                 Text(entry.status.title)
                     .font(.headline)
                     .lineLimit(1)
-                    .accessibilityIdentifier("widget.status.rectangular.title")
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("widget.status.rectangular.title.text")
                 Text(entry.status.subtitle)
                     .font(.caption)
                     .lineLimit(1)
-                    .accessibilityIdentifier("widget.status.rectangular.subtitle")
+                    .accessibilityIdentifier("widget.status.rectangular.subtitle.text")
             }
-            .accessibilityIdentifier("widget.status.rectangular.text-stack")
+            .accessibilityIdentifier("widget.status.rectangular.text-stack.container")
         }
         .accessibilityIdentifier("widget.status.rectangular.container")
     }
@@ -231,7 +232,7 @@ private struct InsulisisStatusWidgetView: View {
 
                 statusText(textScale: textScale)
                     .padding(textScale.padding)
-                    .accessibilityIdentifier("widget.status.full-bleed.text-stack")
+                    .accessibilityIdentifier("widget.status.full-bleed.text-stack.container")
             }
             .accessibilityIdentifier("widget.status.full-bleed.container")
         }
@@ -244,16 +245,17 @@ private struct InsulisisStatusWidgetView: View {
                 .foregroundStyle(.white)
                 .lineLimit(2)
                 .shadow(radius: 4, y: 1)
-                .accessibilityIdentifier("widget.status.title-label")
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("widget.status.title.text")
 
             Text(entry.status.subtitle)
                 .font(textScale.subtitleFont)
                 .foregroundStyle(.white.opacity(0.9))
                 .lineLimit(2)
                 .shadow(radius: 3, y: 1)
-                .accessibilityIdentifier("widget.status.subtitle-label")
+                .accessibilityIdentifier("widget.status.subtitle.text")
         }
-        .accessibilityIdentifier("widget.status.text-stack")
+        .accessibilityIdentifier("widget.status.text-stack.container")
     }
 }
 
@@ -417,18 +419,20 @@ private extension Date {
             .dateTime
                 .locale(Locale(identifier: "pt_BR"))
                 .weekday(.abbreviated)
-                .hour()
-                .minute()
-        )
+        ) + ", \(timeText)"
     }
 
     var insulisisTimeText: String {
-        formatted(
-            .dateTime
-                .locale(Locale(identifier: "pt_BR"))
-                .hour()
-                .minute()
-        )
+        Self.insulisisTimeFormatter.string(from: self)
+    }
+
+    private static var insulisisTimeFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "h:mm a"
+        formatter.amSymbol = "AM"
+        formatter.pmSymbol = "PM"
+        return formatter
     }
 
     var insulisisDelayText: String {

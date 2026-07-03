@@ -25,19 +25,20 @@ struct InsulisisCheckLiveActivity: Widget {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Insulisis")
                             .font(.headline)
-                            .accessibilityIdentifier("live-activity.dynamic-island.title")
+                            .accessibilityAddTraits(.isHeader)
+                            .accessibilityIdentifier("live-activity.dynamic-island.title.text")
                         Text("\(context.state.periodTitle) pendente")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("live-activity.dynamic-island.status-label")
+                            .accessibilityIdentifier("live-activity.dynamic-island.status.text")
                     }
-                    .accessibilityIdentifier("live-activity.dynamic-island.center")
+                    .accessibilityIdentifier("live-activity.dynamic-island.center.container")
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
                     ElapsedDelayText(startDate: context.state.overdueStartedAt)
                         .font(.headline.monospacedDigit())
-                        .accessibilityIdentifier("live-activity.dynamic-island.elapsed-label")
+                        .accessibilityIdentifier("live-activity.dynamic-island.elapsed.text")
                 }
             } compactLeading: {
                 Image(systemName: "syringe")
@@ -46,7 +47,7 @@ struct InsulisisCheckLiveActivity: Widget {
             } compactTrailing: {
                 ElapsedDelayText(startDate: context.state.overdueStartedAt)
                     .font(.caption2.monospacedDigit())
-                    .accessibilityIdentifier("live-activity.compact-trailing.elapsed-label")
+                    .accessibilityIdentifier("live-activity.compact-trailing.elapsed.text")
             } minimal: {
                 Image(systemName: "syringe")
                     .foregroundStyle(.red)
@@ -77,10 +78,11 @@ private struct LockScreenLiveActivityView: View {
                             .accessibilityIdentifier("live-activity.lock-screen.status-icon")
                         Text(context.state.periodTitle)
                             .fontWeight(.semibold)
-                            .accessibilityIdentifier("live-activity.lock-screen.period-label")
+                            .accessibilityAddTraits(.isHeader)
+                            .accessibilityIdentifier("live-activity.lock-screen.period.text")
                     }
                     .font(.system(size: 20, weight: .semibold, design: .rounded))
-                    .accessibilityIdentifier("live-activity.lock-screen.period-row")
+                    .accessibilityIdentifier("live-activity.lock-screen.period-row.container")
 
                     HStack(spacing: 12) {
                         Image(systemName: "timer")
@@ -89,25 +91,25 @@ private struct LockScreenLiveActivityView: View {
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.72)
-                            .accessibilityIdentifier("live-activity.lock-screen.elapsed-label")
+                            .accessibilityIdentifier("live-activity.lock-screen.elapsed.text")
                     }
                     .font(.system(size: 44, weight: .bold, design: .rounded))
-                    .accessibilityIdentifier("live-activity.lock-screen.elapsed-row")
+                    .accessibilityIdentifier("live-activity.lock-screen.elapsed-row.container")
 
                     Text(context.state.isOverdue ? "de atraso" : "até a próxima dose")
                         .font(.system(size: 24, weight: .regular, design: .rounded))
-                        .accessibilityIdentifier("live-activity.lock-screen.subtitle-label")
+                        .accessibilityIdentifier("live-activity.lock-screen.subtitle.text")
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: 214, alignment: .leading)
-                .accessibilityIdentifier("live-activity.lock-screen.text-stack")
+                .accessibilityIdentifier("live-activity.lock-screen.text-stack.container")
 
                 Spacer(minLength: 0)
             }
             .padding(.leading, 24)
             .padding(.trailing, 150)
             .unredacted()
-            .accessibilityIdentifier("live-activity.lock-screen.content-row")
+            .accessibilityIdentifier("live-activity.lock-screen.content-row.container")
         }
         .frame(height: 156)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
@@ -123,6 +125,5 @@ private struct ElapsedDelayText: View {
     var body: some View {
         Text(timerInterval: startDate...Date.distantFuture, countsDown: false)
             .unredacted()
-            .accessibilityIdentifier("live-activity.elapsed-text")
     }
 }

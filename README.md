@@ -56,15 +56,49 @@ Também é possível voltar uma dose para pendente caso uma aplicação tenha si
 A interface possui `accessibilityIdentifier` nos principais elementos para facilitar testes com XCUITest. Alguns exemplos:
 
 ```swift
-app.buttons["home.manual-entry.button"]
-app.buttons["dose-card.morning.action-button"]
-app.buttons["dose-card.night.action-button"]
+app.staticTexts["home.title.text"]
+app.buttons["home.manual-entry.morning.button"]
+app.otherElements["home.header.info.container"]
+app.otherElements["home.header.date.container"]
+app.otherElements["home.header.status.night.container"]
+app.otherElements["home.header.next-dose.night.container"]
+app.staticTexts["home.header.next-dose.night.text"]
+app.otherElements["home.period-cards.container"]
+app.otherElements["dose-card.morning.container"]
+app.otherElements["dose-card.night.container"]
+app.buttons["dose-card.morning.manual-entry.button"]
+app.buttons["dose-card.night.manual-entry.button"]
+app.staticTexts["dose-card.morning.title.text"]
+app.staticTexts["dose-card.night.deadline.text"]
+app.staticTexts["today.title.text"]
+app.otherElements["today.empty.container"]
+app.staticTexts["manual.title.text"]
+app.staticTexts["manual.entry.section-title.text"]
+app.otherElements["manual.period.row.container"]
 app.pickers["manual.period.picker"]
+app.otherElements["manual.caregiver.row.container"]
 app.pickers["manual.caregiver.picker"]
-app.steppers["manual.units.stepper"]
-app.datePickers["manual.date-picker"]
+app.otherElements["manual.units.row.container"]
+app.staticTexts["manual.units.value.text"]
+app.buttons["manual.units.decrement.button"]
+app.buttons["manual.units.increment.button"]
+app.otherElements["manual.schedule.row.container"]
+app.datePickers["manual.date.picker"]
+app.datePickers["manual.time.picker"]
+app.textViews["invite-accept.invite-text.text-view"]
 app.buttons["manual.save.button"]
 app.buttons["manual.mark-pending.button"]
+```
+
+No Maestro, prefira tocar diretamente no botão do período, sem `index`:
+
+```yaml
+- assertVisible:
+    id: "home.title.text"
+- assertVisible:
+    id: "dose-card.night.container"
+- tapOn:
+    id: "dose-card.night.manual-entry.button"
 ```
 
 ## Tecnologias
