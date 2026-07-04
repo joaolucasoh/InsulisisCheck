@@ -6,7 +6,6 @@ final class InsulinNotificationManager: NSObject, UNUserNotificationCenterDelega
 
     private let center = UNUserNotificationCenter.current()
     private let notificationPrefix = "insulisis-dose-reminder"
-    private let remoteDoseNotificationPrefix = "insulisis-remote-dose"
     private let overdueOffsets: [Int] = [15, 30, 60]
     private let customSoundName = "dog-bark.caf"
 
@@ -42,21 +41,6 @@ final class InsulinNotificationManager: NSObject, UNUserNotificationCenterDelega
 
         guard !identifiers.isEmpty else { return }
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
-    }
-
-    func notifyRemoteDoseEntries(_ entries: [DoseEntry]) async {
-        guard !entries.isEmpty else { return }
-
-        await requestAuthorizationIfNeeded()
-
-        let settings = await center.notificationSettings()
-        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
-            return
-        }
-
-        for entry in entries {
-            await notifyRemoteDoseEntry(entry)
-        }
     }
 
     func userNotificationCenter(
@@ -99,24 +83,6 @@ final class InsulinNotificationManager: NSObject, UNUserNotificationCenterDelega
         }
     }
 
-    private func notifyRemoteDoseEntry(_ entry: DoseEntry) async {
-        let content = UNMutableNotificationContent()
-        content.title = "Muito bem!"
-        content.body = "Dose da \(entry.period.title.lowercased()) aplicada por \(entry.caregiver) às \(entry.date.insulisisTimeText)."
-        content.sound = notificationSound
-        content.threadIdentifier = "insulisis-remote-dose-updates"
-        content.targetContentIdentifier = remoteDoseNotificationIdentifier(for: entry)
-        content.relevanceScore = 1
-
-        let request = UNNotificationRequest(
-            identifier: remoteDoseNotificationIdentifier(for: entry),
-            content: content,
-            trigger: nil
-        )
-
-        try? await center.add(request)
-    }
-
     private func scheduleNotification(
         identifier: String,
         title: String,
@@ -150,11 +116,6 @@ final class InsulinNotificationManager: NSObject, UNUserNotificationCenterDelega
     private func notificationIdentifier(for schedule: DoseSchedule, suffix: String) -> String {
         let dateText = ISO8601DateFormatter().string(from: schedule.nextDoseDate)
         return "\(notificationPrefix)-\(schedule.nextPeriod.rawValue)-\(dateText)-\(suffix)"
-    }
-
-    private func remoteDoseNotificationIdentifier(for entry: DoseEntry) -> String {
-        let dateText = ISO8601DateFormatter().string(from: entry.date)
-        return "\(remoteDoseNotificationPrefix)-\(entry.cloudRecordName)-\(dateText)"
     }
 
     private var notificationSound: UNNotificationSound {

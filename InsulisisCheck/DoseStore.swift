@@ -95,12 +95,10 @@ final class DoseStore: ObservableObject {
 
         do {
             let cloudEntries = try await CloudDoseSync.shared.fetchCaregiverEntries()
-            var remoteEntriesToNotify = remoteDoseEntriesToNotify(from: cloudEntries)
 
             if cloudEntries.isEmpty {
                 if try await uploadLocalCaregiverEntries() > 0 {
                     let refreshedCloudEntries = try await CloudDoseSync.shared.fetchCaregiverEntries()
-                    remoteEntriesToNotify = remoteDoseEntriesToNotify(from: refreshedCloudEntries)
                     merge(refreshedCloudEntries)
                 }
             } else {
@@ -110,8 +108,6 @@ final class DoseStore: ObservableObject {
             markSyncCompleted()
             syncStatus = .ready("Dados sincronizados.")
             await InsulinNotificationManager.shared.refresh(entries: entries)
-            await InsulinNotificationManager.shared.notifyRemoteDoseEntries(remoteEntriesToNotify)
-            markRemoteDoseEntriesNotified(remoteEntriesToNotify)
         } catch {
             syncStatus = .unavailable(CloudErrorMessage.make(from: error))
         }
@@ -262,35 +258,6 @@ final class DoseStore: ObservableObject {
         let date = Date()
         lastSyncDate = date
         SharedStorage.defaults.set(date, forKey: SharedStorage.lastSyncDateKey)
-    }
-
-    private func remoteDoseEntriesToNotify(from cloudEntries: [DoseEntry]) -> [DoseEntry] {
-        let notifiedIDs = Set(SharedStorage.defaults.stringArray(forKey: SharedStorage.remoteDoseNotificationIDsKey) ?? [])
-        let recentThreshold = Date().addingTimeInterval(-24 * 60 * 60)
-
-        return cloudEntries.filter { entry in
-            guard let sourceDeviceID = entry.sourceDeviceID,
-                  sourceDeviceID != SharedStorage.deviceID,
-                  entry.date >= recentThreshold else {
-                return false
-            }
-
-            return !notifiedIDs.contains(remoteNotificationID(for: entry))
-        }
-    }
-
-    private func markRemoteDoseEntriesNotified(_ entries: [DoseEntry]) {
-        guard !entries.isEmpty else { return }
-
-        var notifiedIDs = SharedStorage.defaults.stringArray(forKey: SharedStorage.remoteDoseNotificationIDsKey) ?? []
-        notifiedIDs.append(contentsOf: entries.map(remoteNotificationID(for:)))
-        notifiedIDs = Array(Array(Set(notifiedIDs)).sorted().suffix(50))
-        SharedStorage.defaults.set(Array(notifiedIDs), forKey: SharedStorage.remoteDoseNotificationIDsKey)
-    }
-
-    private func remoteNotificationID(for entry: DoseEntry) -> String {
-        let dateText = ISO8601DateFormatter().string(from: entry.date)
-        return "\(entry.cloudRecordName)-\(dateText)-\(entry.sourceDeviceID ?? "unknown")"
     }
 
     private func migrateLegacyEntriesIfNeeded() {

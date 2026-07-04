@@ -8,7 +8,6 @@ enum SharedStorage {
     static let sessionModeKey = "insulisis.sessionMode"
     static let lastSyncDateKey = "insulisis.lastSyncDate"
     static let deviceIDKey = "insulisis.deviceID"
-    static let remoteDoseNotificationIDsKey = "insulisis.remoteDoseNotificationIDs"
 
     static var defaults: UserDefaults {
         UserDefaults(suiteName: appGroupID) ?? .standard
