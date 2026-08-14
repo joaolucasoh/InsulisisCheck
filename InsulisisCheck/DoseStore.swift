@@ -96,13 +96,13 @@ final class DoseStore: ObservableObject {
         do {
             let cloudEntries = try await CloudDoseSync.shared.fetchCaregiverEntries()
 
-            if cloudEntries.isEmpty {
+            if cloudEntries.isEmpty && lastSyncDate == nil {
                 if try await uploadLocalCaregiverEntries() > 0 {
                     let refreshedCloudEntries = try await CloudDoseSync.shared.fetchCaregiverEntries()
-                    merge(refreshedCloudEntries)
+                    replaceEntries(with: refreshedCloudEntries)
                 }
             } else {
-                merge(cloudEntries)
+                replaceEntries(with: cloudEntries)
             }
 
             markSyncCompleted()
@@ -230,15 +230,8 @@ final class DoseStore: ObservableObject {
         }
     }
 
-    private func merge(_ cloudEntries: [DoseEntry]) {
-        guard !cloudEntries.isEmpty else { return }
-
-        var merged = Dictionary(uniqueKeysWithValues: entries.map { ($0.cloudRecordName, $0) })
-        for entry in cloudEntries {
-            merged[entry.cloudRecordName] = entry
-        }
-
-        entries = merged.values.sorted { $0.date > $1.date }
+    private func replaceEntries(with cloudEntries: [DoseEntry]) {
+        entries = cloudEntries.sorted { $0.date > $1.date }
         save()
     }
 

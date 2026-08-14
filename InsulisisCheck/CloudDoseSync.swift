@@ -174,7 +174,7 @@ final class CloudDoseSync {
             recordType: doseRecordType,
             predicate: predicate,
             subscriptionID: subscriptionID,
-            options: [.firesOnRecordCreation, .firesOnRecordUpdate]
+            options: [.firesOnRecordCreation, .firesOnRecordUpdate, .firesOnRecordDeletion]
         )
         let notificationInfo = CKSubscription.NotificationInfo()
         notificationInfo.titleLocalizationKey = "REMOTE_DOSE_APPLIED_TITLE"
