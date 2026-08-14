@@ -167,26 +167,26 @@ final class CloudDoseSync {
     func ensureCaregiverSubscription() async throws {
         let subscriptionID = caregiverSubscriptionID(for: SharedStorage.deviceID)
 
-        do {
-            _ = try await fetchSubscription(subscriptionID, in: container.publicCloudDatabase)
-            return
-        } catch let error as CKError where error.code == .unknownItem {
-            let predicate = NSPredicate(format: "sourceDeviceID != %@", SharedStorage.deviceID)
-            let subscription = CKQuerySubscription(
-                recordType: doseRecordType,
-                predicate: predicate,
-                subscriptionID: subscriptionID,
-                options: [.firesOnRecordCreation, .firesOnRecordUpdate]
-            )
-            let notificationInfo = CKSubscription.NotificationInfo()
-            notificationInfo.titleLocalizationKey = "REMOTE_DOSE_APPLIED_TITLE"
-            notificationInfo.alertLocalizationKey = "REMOTE_DOSE_APPLIED_BODY"
-            notificationInfo.alertLocalizationArgs = ["caregiver"]
-            notificationInfo.soundName = "dog-bark.caf"
-            notificationInfo.shouldSendContentAvailable = true
-            subscription.notificationInfo = notificationInfo
-            _ = try await save(subscription, in: container.publicCloudDatabase)
-        }
+        CloudShareDiagnostics.record("caregiverSubscription:save:start \(subscriptionID)")
+
+        let predicate = NSPredicate(format: "sourceDeviceID != %@", SharedStorage.deviceID)
+        let subscription = CKQuerySubscription(
+            recordType: doseRecordType,
+            predicate: predicate,
+            subscriptionID: subscriptionID,
+            options: [.firesOnRecordCreation, .firesOnRecordUpdate]
+        )
+        let notificationInfo = CKSubscription.NotificationInfo()
+        notificationInfo.titleLocalizationKey = "REMOTE_DOSE_APPLIED_TITLE"
+        notificationInfo.alertLocalizationKey = "REMOTE_DOSE_APPLIED_BODY"
+        notificationInfo.alertLocalizationArgs = ["caregiver"]
+        notificationInfo.desiredKeys = ["caregiver", "sourceDeviceID"]
+        notificationInfo.soundName = "dog-bark.caf"
+        notificationInfo.shouldSendContentAvailable = true
+        subscription.notificationInfo = notificationInfo
+        _ = try await save(subscription, in: container.publicCloudDatabase)
+
+        CloudShareDiagnostics.record("caregiverSubscription:save:done \(subscriptionID)")
     }
 
     func saveCaregiverEntry(_ entry: DoseEntry) async throws {

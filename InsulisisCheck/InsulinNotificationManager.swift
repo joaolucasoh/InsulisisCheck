@@ -17,6 +17,10 @@ final class InsulinNotificationManager: NSObject, UNUserNotificationCenterDelega
         center.delegate = self
     }
 
+    func preparePermissions() async {
+        await requestAuthorizationIfNeeded()
+    }
+
     func refresh(entries: [DoseEntry]) async {
         await requestAuthorizationIfNeeded()
 

@@ -15,8 +15,23 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        CloudShareDiagnostics.record("remoteNotifications:register:start")
         application.registerForRemoteNotifications()
         return true
+    }
+
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        CloudShareDiagnostics.record("remoteNotifications:register:done")
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        CloudShareDiagnostics.record("remoteNotifications:register:error \(error.localizedDescription)")
     }
 
     func application(
@@ -34,9 +49,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
         guard CKNotification(fromRemoteNotificationDictionary: userInfo) != nil else {
+            CloudShareDiagnostics.record("remoteNotifications:received:ignored")
             completionHandler(.noData)
             return
         }
+
+        CloudShareDiagnostics.record("remoteNotifications:received:cloudkit")
 
         Task { @MainActor in
             let didUpdate = await DoseStore.shared.handleRemoteCloudChange()
@@ -58,6 +76,7 @@ struct InsulisisCheckApp: App {
                     LiveActivityImagePublisher.publishStaticImages()
                     InsulinNotificationManager.shared.configure()
                     Task {
+                        await InsulinNotificationManager.shared.preparePermissions()
                         await store.prepareRemoteUpdates()
                     }
                 }
@@ -74,6 +93,7 @@ struct InsulisisCheckApp: App {
             guard scenePhase == .active else { return }
             WidgetCenter.shared.reloadAllTimelines()
             Task {
+                await InsulinNotificationManager.shared.preparePermissions()
                 await store.prepareRemoteUpdates()
                 await InsulinActivityManager.shared.refresh(store: store)
                 await InsulinNotificationManager.shared.refresh(entries: store.entries)
