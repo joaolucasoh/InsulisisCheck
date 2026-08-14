@@ -147,7 +147,8 @@ final class CloudDoseSync {
     private let familyRecordType = "InsulisisFamily"
     private let caregiverSessionID = "isis-caregiver"
     private let caregiverIndexRecordName = "isis-caregiver-index"
-    private let caregiverSubscriptionIDPrefix = "insulisis-caregiver-dose-changes"
+    private let caregiverAppliedSubscriptionIDPrefix = "insulisis-caregiver-dose-applied-v3"
+    private let caregiverSyncSubscriptionIDPrefix = "insulisis-caregiver-dose-sync-v3"
     private let sharedZoneNameKey = "insulisis.sharedZoneName"
     private let sharedZoneOwnerKey = "insulisis.sharedZoneOwner"
 
@@ -165,28 +166,45 @@ final class CloudDoseSync {
     }
 
     func ensureCaregiverSubscription() async throws {
-        let subscriptionID = caregiverSubscriptionID(for: SharedStorage.deviceID)
+        let appliedSubscriptionID = caregiverAppliedSubscriptionID(for: SharedStorage.deviceID)
+        let syncSubscriptionID = caregiverSyncSubscriptionID(for: SharedStorage.deviceID)
 
-        CloudShareDiagnostics.record("caregiverSubscription:save:start \(subscriptionID)")
+        CloudShareDiagnostics.record("caregiverSubscription:save:start applied=\(appliedSubscriptionID) sync=\(syncSubscriptionID)")
 
         let predicate = NSPredicate(format: "sourceDeviceID != %@", SharedStorage.deviceID)
-        let subscription = CKQuerySubscription(
+        let appliedSubscription = CKQuerySubscription(
             recordType: doseRecordType,
             predicate: predicate,
-            subscriptionID: subscriptionID,
+            subscriptionID: appliedSubscriptionID,
+            options: [.firesOnRecordCreation, .firesOnRecordUpdate]
+        )
+        let appliedNotificationInfo = CKSubscription.NotificationInfo()
+        appliedNotificationInfo.titleLocalizationKey = "REMOTE_DOSE_APPLIED_TITLE"
+        appliedNotificationInfo.alertLocalizationKey = "REMOTE_DOSE_APPLIED_BODY"
+        appliedNotificationInfo.alertLocalizationArgs = ["notificationBody"]
+        appliedNotificationInfo.desiredKeys = ["caregiver", "date", "notificationBody", "sourceDeviceID"]
+        appliedNotificationInfo.soundName = "dog-bark.caf"
+        appliedNotificationInfo.shouldSendContentAvailable = true
+        appliedSubscription.notificationInfo = appliedNotificationInfo
+
+        let syncSubscription = CKQuerySubscription(
+            recordType: doseRecordType,
+            predicate: predicate,
+            subscriptionID: syncSubscriptionID,
             options: [.firesOnRecordCreation, .firesOnRecordUpdate, .firesOnRecordDeletion]
         )
-        let notificationInfo = CKSubscription.NotificationInfo()
-        notificationInfo.titleLocalizationKey = "REMOTE_DOSE_APPLIED_TITLE"
-        notificationInfo.alertLocalizationKey = "REMOTE_DOSE_APPLIED_BODY"
-        notificationInfo.alertLocalizationArgs = ["notificationBody"]
-        notificationInfo.desiredKeys = ["caregiver", "date", "notificationBody", "sourceDeviceID"]
-        notificationInfo.soundName = "dog-bark.caf"
-        notificationInfo.shouldSendContentAvailable = true
-        subscription.notificationInfo = notificationInfo
-        _ = try await save(subscription, in: container.publicCloudDatabase)
+        let syncNotificationInfo = CKSubscription.NotificationInfo()
+        syncNotificationInfo.desiredKeys = ["caregiver", "date", "notificationBody", "sourceDeviceID"]
+        syncNotificationInfo.shouldSendContentAvailable = true
+        syncSubscription.notificationInfo = syncNotificationInfo
 
-        CloudShareDiagnostics.record("caregiverSubscription:save:done \(subscriptionID)")
+        try await replaceSubscriptions(
+            saving: [appliedSubscription, syncSubscription],
+            deleting: [],
+            in: container.publicCloudDatabase
+        )
+
+        CloudShareDiagnostics.record("caregiverSubscription:save:done applied=\(appliedSubscriptionID) sync=\(syncSubscriptionID)")
     }
 
     func saveCaregiverEntry(_ entry: DoseEntry) async throws {
@@ -474,21 +492,25 @@ final class CloudDoseSync {
         }
     }
 
-    private func save(_ subscription: CKSubscription, in database: CKDatabase) async throws -> CKSubscription {
+    private func replaceSubscriptions(
+        saving subscriptions: [CKSubscription],
+        deleting subscriptionIDs: [CKSubscription.ID],
+        in database: CKDatabase
+    ) async throws {
         try await withCheckedThrowingContinuation { continuation in
-            database.save(subscription) { subscription, error in
-                if let error {
+            let operation = CKModifySubscriptionsOperation(
+                subscriptionsToSave: subscriptions,
+                subscriptionIDsToDelete: subscriptionIDs
+            )
+            operation.modifySubscriptionsResultBlock = { result in
+                switch result {
+                case .success:
+                    continuation.resume()
+                case .failure(let error):
                     continuation.resume(throwing: error)
-                    return
                 }
-
-                guard let subscription else {
-                    continuation.resume(throwing: CKError(.unknownItem))
-                    return
-                }
-
-                continuation.resume(returning: subscription)
             }
+            database.add(operation)
         }
     }
 
@@ -670,8 +692,12 @@ final class CloudDoseSync {
         "\(caregiverSessionID)-\(entry.cloudRecordName)"
     }
 
-    private func caregiverSubscriptionID(for deviceID: String) -> String {
-        "\(caregiverSubscriptionIDPrefix)-\(deviceID)"
+    private func caregiverAppliedSubscriptionID(for deviceID: String) -> String {
+        "\(caregiverAppliedSubscriptionIDPrefix)-\(deviceID)"
+    }
+
+    private func caregiverSyncSubscriptionID(for deviceID: String) -> String {
+        "\(caregiverSyncSubscriptionIDPrefix)-\(deviceID)"
     }
 
     private static func entry(from record: CKRecord) -> DoseEntry? {
