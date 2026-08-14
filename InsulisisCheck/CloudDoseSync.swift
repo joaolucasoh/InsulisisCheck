@@ -177,7 +177,11 @@ final class CloudDoseSync {
             options: [.firesOnRecordCreation, .firesOnRecordUpdate, .firesOnRecordDeletion]
         )
         let notificationInfo = CKSubscription.NotificationInfo()
-        notificationInfo.desiredKeys = ["caregiver", "date", "sourceDeviceID"]
+        notificationInfo.titleLocalizationKey = "REMOTE_DOSE_APPLIED_TITLE"
+        notificationInfo.alertLocalizationKey = "REMOTE_DOSE_APPLIED_BODY"
+        notificationInfo.alertLocalizationArgs = ["notificationBody"]
+        notificationInfo.desiredKeys = ["caregiver", "date", "notificationBody", "sourceDeviceID"]
+        notificationInfo.soundName = "dog-bark.caf"
         notificationInfo.shouldSendContentAvailable = true
         subscription.notificationInfo = notificationInfo
         _ = try await save(subscription, in: container.publicCloudDatabase)
@@ -645,9 +649,21 @@ final class CloudDoseSync {
         record["period"] = entry.period.rawValue as CKRecordValue
         record["caregiver"] = entry.caregiver as CKRecordValue
         record["units"] = entry.units as CKRecordValue
+        record["notificationBody"] = notificationBody(for: entry) as CKRecordValue
         if let sourceDeviceID = entry.sourceDeviceID {
             record["sourceDeviceID"] = sourceDeviceID as CKRecordValue
         }
+    }
+
+    private func notificationBody(for entry: DoseEntry) -> String {
+        "Dose aplicada por \(entry.caregiver) às \(remoteDoseTimeText(for: entry.date))"
+    }
+
+    private func remoteDoseTimeText(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "HH'h'mm"
+        return formatter.string(from: date)
     }
 
     private func caregiverRecordName(for entry: DoseEntry) -> String {
