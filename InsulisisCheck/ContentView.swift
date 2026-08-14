@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var manualPeriod: InsulinPeriod?
     @State private var isSharingPresented = false
     @State private var isInviteAcceptancePresented = false
+    @State private var isDiagnosticsPresented = false
     @State private var isOpeningSyncVisible = false
     @State private var isOpeningSyncRunning = false
     private let refreshTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
@@ -72,6 +73,12 @@ struct ContentView: View {
                         } label: {
                             Label("Trocar modo", systemImage: "arrow.left.arrow.right")
                         }
+
+                        Button {
+                            isDiagnosticsPresented = true
+                        } label: {
+                            Label("Diagnóstico iCloud", systemImage: "stethoscope")
+                        }
                     } label: {
                         Label(store.sessionMode?.title ?? "Sessão", systemImage: "person.2")
                     }
@@ -89,6 +96,9 @@ struct ContentView: View {
             }
             .sheet(item: $manualPeriod) { period in
                 ManualEntryView(period: period, store: store)
+            }
+            .sheet(isPresented: $isDiagnosticsPresented) {
+                CloudDiagnosticsView()
             }
             .task {
                 await refreshAfterOpening()
@@ -423,6 +433,53 @@ private struct SyncStatusBanner: View {
         }
 
         return "Última atualização \(lastSyncDate.insulisisTimeText)"
+    }
+}
+
+private struct CloudDiagnosticsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var diagnosticText = CloudShareDiagnostics.text
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                Text(diagnosticText.isEmpty ? "Nenhum diagnóstico registrado ainda." : diagnosticText)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(20)
+                    .textSelection(.enabled)
+                    .accessibilityIdentifier("cloud-diagnostics.log.text")
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Diagnóstico iCloud")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fechar") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItemGroup(placement: .primaryAction) {
+                    Button {
+                        diagnosticText = CloudShareDiagnostics.text
+                    } label: {
+                        Label("Atualizar", systemImage: "arrow.clockwise")
+                    }
+
+                    Button {
+                        CloudShareDiagnostics.clear()
+                        diagnosticText = ""
+                    } label: {
+                        Label("Limpar", systemImage: "trash")
+                    }
+                }
+            }
+            .onAppear {
+                diagnosticText = CloudShareDiagnostics.text
+            }
+        }
     }
 }
 
