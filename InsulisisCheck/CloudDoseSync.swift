@@ -147,8 +147,8 @@ final class CloudDoseSync {
     private let familyRecordType = "InsulisisFamily"
     private let caregiverSessionID = "isis-caregiver"
     private let caregiverIndexRecordName = "isis-caregiver-index"
-    private let caregiverAppliedSubscriptionIDPrefix = "insulisis-caregiver-dose-applied-v3"
-    private let caregiverSyncSubscriptionIDPrefix = "insulisis-caregiver-dose-sync-v3"
+    private let caregiverAppliedSubscriptionIDPrefix = "insulisis-caregiver-dose-applied-v4"
+    private let caregiverSyncSubscriptionIDPrefix = "insulisis-caregiver-dose-sync-v4"
     private let sharedZoneNameKey = "insulisis.sharedZoneName"
     private let sharedZoneOwnerKey = "insulisis.sharedZoneOwner"
 
