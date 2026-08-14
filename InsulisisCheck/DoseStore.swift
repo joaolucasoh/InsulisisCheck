@@ -126,7 +126,13 @@ final class DoseStore: ObservableObject {
     func handleRemoteCloudChange() async -> Bool {
         guard sessionMode?.usesCloud == true else { return false }
 
+        let previousEntries = Dictionary(uniqueKeysWithValues: entries.map { ($0.cloudRecordName, $0) })
         await syncFromCloud()
+
+        if let remoteAppliedEntry = remoteAppliedEntryToNotify(previousEntries: previousEntries) {
+            await InsulinNotificationManager.shared.notifyRemoteDoseApplied(remoteAppliedEntry)
+        }
+
         await InsulinActivityManager.shared.refresh(store: self)
         return true
     }
@@ -233,6 +239,30 @@ final class DoseStore: ObservableObject {
     private func replaceEntries(with cloudEntries: [DoseEntry]) {
         entries = cloudEntries.sorted { $0.date > $1.date }
         save()
+    }
+
+    private func remoteAppliedEntryToNotify(previousEntries: [String: DoseEntry]) -> DoseEntry? {
+        let recentThreshold = Date().addingTimeInterval(-30 * 60)
+
+        return entries
+            .filter { entry in
+                guard entry.date >= recentThreshold,
+                      let sourceDeviceID = entry.sourceDeviceID,
+                      sourceDeviceID != SharedStorage.deviceID else {
+                    return false
+                }
+
+                guard let previousEntry = previousEntries[entry.cloudRecordName] else {
+                    return true
+                }
+
+                return previousEntry.date != entry.date ||
+                    previousEntry.caregiver != entry.caregiver ||
+                    previousEntry.units != entry.units ||
+                    previousEntry.sourceDeviceID != entry.sourceDeviceID
+            }
+            .sorted { $0.date > $1.date }
+            .first
     }
 
     private func uploadLocalCaregiverEntries() async throws -> Int {

@@ -171,10 +171,11 @@ final class CloudDoseSync {
 
         CloudShareDiagnostics.record("caregiverSubscription:save:start applied=\(appliedSubscriptionID) sync=\(syncSubscriptionID)")
 
-        let predicate = NSPredicate(format: "sourceDeviceID != %@", SharedStorage.deviceID)
+        let remoteDevicePredicate = NSPredicate(format: "sourceDeviceID != %@", SharedStorage.deviceID)
+        let allDoseChangesPredicate = NSPredicate(value: true)
         let appliedSubscription = CKQuerySubscription(
             recordType: doseRecordType,
-            predicate: predicate,
+            predicate: remoteDevicePredicate,
             subscriptionID: appliedSubscriptionID,
             options: [.firesOnRecordCreation, .firesOnRecordUpdate]
         )
@@ -189,7 +190,7 @@ final class CloudDoseSync {
 
         let syncSubscription = CKQuerySubscription(
             recordType: doseRecordType,
-            predicate: predicate,
+            predicate: allDoseChangesPredicate,
             subscriptionID: syncSubscriptionID,
             options: [.firesOnRecordCreation, .firesOnRecordUpdate, .firesOnRecordDeletion]
         )
