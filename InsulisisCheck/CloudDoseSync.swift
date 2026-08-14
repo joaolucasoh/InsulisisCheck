@@ -177,11 +177,7 @@ final class CloudDoseSync {
             options: [.firesOnRecordCreation, .firesOnRecordUpdate, .firesOnRecordDeletion]
         )
         let notificationInfo = CKSubscription.NotificationInfo()
-        notificationInfo.titleLocalizationKey = "REMOTE_DOSE_APPLIED_TITLE"
-        notificationInfo.alertLocalizationKey = "REMOTE_DOSE_APPLIED_BODY"
-        notificationInfo.alertLocalizationArgs = ["caregiver"]
-        notificationInfo.desiredKeys = ["caregiver", "sourceDeviceID"]
-        notificationInfo.soundName = "dog-bark.caf"
+        notificationInfo.desiredKeys = ["caregiver", "date", "sourceDeviceID"]
         notificationInfo.shouldSendContentAvailable = true
         subscription.notificationInfo = notificationInfo
         _ = try await save(subscription, in: container.publicCloudDatabase)

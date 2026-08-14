@@ -47,6 +47,31 @@ final class InsulinNotificationManager: NSObject, UNUserNotificationCenterDelega
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
     }
 
+    func notifyRemoteDoseApplied(_ entry: DoseEntry) async {
+        await requestAuthorizationIfNeeded()
+
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Muito bem!"
+        content.body = "Dose aplicada por \(entry.caregiver) às \(remoteDoseTimeText(for: entry.date))"
+        content.sound = notificationSound
+        content.threadIdentifier = "insulisis-remote-dose-updates"
+        content.interruptionLevel = .timeSensitive
+        content.relevanceScore = 1
+
+        let request = UNNotificationRequest(
+            identifier: "insulisis-remote-dose-applied-\(entry.cloudRecordName)",
+            content: content,
+            trigger: nil
+        )
+
+        try? await center.add(request)
+    }
+
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
@@ -128,5 +153,12 @@ final class InsulinNotificationManager: NSObject, UNUserNotificationCenterDelega
         }
 
         return UNNotificationSound(named: UNNotificationSoundName(customSoundName))
+    }
+
+    private func remoteDoseTimeText(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "HH'h'mm"
+        return formatter.string(from: date)
     }
 }

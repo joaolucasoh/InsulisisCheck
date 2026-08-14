@@ -126,7 +126,17 @@ final class DoseStore: ObservableObject {
     func handleRemoteCloudChange() async -> Bool {
         guard sessionMode?.usesCloud == true else { return false }
 
+        let existingRecordNames = Set(entries.map(\.cloudRecordName))
         await syncFromCloud()
+        let newRemoteEntries = entries.filter {
+            !existingRecordNames.contains($0.cloudRecordName) &&
+                $0.sourceDeviceID != SharedStorage.deviceID
+        }
+
+        for entry in newRemoteEntries {
+            await InsulinNotificationManager.shared.notifyRemoteDoseApplied(entry)
+        }
+
         await InsulinActivityManager.shared.refresh(store: self)
         return true
     }
