@@ -209,14 +209,20 @@ final class CloudDoseSync {
 
     func saveCaregiverEntry(_ entry: DoseEntry) async throws {
         let recordID = CKRecord.ID(recordName: caregiverRecordName(for: entry))
+        CloudShareDiagnostics.record("caregiverEntry:save:start record=\(recordID.recordName) source=\(entry.sourceDeviceID ?? "nil") body=\(notificationBody(for: entry))")
         try await saveDoseEntry(entry, recordID: recordID, in: container.publicCloudDatabase)
+        CloudShareDiagnostics.record("caregiverEntry:save:doseRecord:done record=\(recordID.recordName)")
         try await updateCaregiverIndex(adding: recordID.recordName)
+        CloudShareDiagnostics.record("caregiverEntry:save:index:done record=\(recordID.recordName)")
     }
 
     func deleteCaregiverEntry(_ entry: DoseEntry) async throws {
         let recordID = CKRecord.ID(recordName: caregiverRecordName(for: entry))
+        CloudShareDiagnostics.record("caregiverEntry:delete:start record=\(recordID.recordName)")
         try await delete(recordID, in: container.publicCloudDatabase)
+        CloudShareDiagnostics.record("caregiverEntry:delete:doseRecord:done record=\(recordID.recordName)")
         try await updateCaregiverIndex(removing: recordID.recordName)
+        CloudShareDiagnostics.record("caregiverEntry:delete:index:done record=\(recordID.recordName)")
     }
 
     func fetchEntries() async throws -> [DoseEntry] {
